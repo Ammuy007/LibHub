@@ -1,0 +1,439 @@
+openapi: 3.0.3
+info:
+  title: Library Management System API
+  version: 1.0.0
+  description: API for managing books, members, loans, copies, fines and categories.
+
+servers:
+  - url: http://localhost:8080/api
+
+tags:
+  - name: Auth
+  - name: Members
+  - name: Books
+  - name: Copies
+  - name: Loans
+  - name: Fines
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login (Admin or Member)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Authenticated
+
+  /members:
+    get:
+      tags: [Members]
+      summary: List members (Admin)
+      responses:
+        "200":
+          description: Member list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+    post:
+      tags: [Members]
+      summary: Add member (Admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberCreate"
+      responses:
+        "201":
+          description: Created
+
+  /members/{memberId}:
+    get:
+      tags: [Members]
+      summary: Get member
+      parameters:
+        - $ref: "#/components/parameters/memberId"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+    put:
+      tags: [Members]
+      summary: Update member (Admin)
+      parameters:
+        - $ref: "#/components/parameters/memberId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberCreate"
+      responses:
+        "200":
+          description: Updated
+    delete:
+      tags: [Members]
+      summary: Delete member (Admin)
+      parameters:
+        - $ref: "#/components/parameters/memberId"
+      responses:
+        "204":
+          description: Deleted
+
+  /books:
+    get:
+      tags: [Books]
+      summary: List books
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+    post:
+      tags: [Books]
+      summary: Add book (Admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookCreate"
+      responses:
+        "201":
+          description: Created
+
+  /books/{bookId}:
+    get:
+      tags: [Books]
+      summary: Get book
+      parameters:
+        - $ref: "#/components/parameters/bookId"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+    put:
+      tags: [Books]
+      summary: Update book (Admin)
+      parameters:
+        - $ref: "#/components/parameters/bookId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookCreate"
+      responses:
+        "200":
+          description: Updated
+    delete:
+      tags: [Books]
+      summary: Delete book (Admin)
+      parameters:
+        - $ref: "#/components/parameters/bookId"
+      responses:
+        "204":
+          description: Deleted
+
+  /copies:
+    post:
+      tags: [Copies]
+      summary: Add copy (Admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CopyCreate"
+      responses:
+        "201":
+          description: Created
+
+  /copies/{copyId}:
+    put:
+      tags: [Copies]
+      summary: Update copy status
+      parameters:
+        - $ref: "#/components/parameters/copyId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CopyUpdate"
+      responses:
+        "200":
+          description: Updated
+
+  /loans:
+    post:
+      tags: [Loans]
+      summary: Issue book
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoanCreate"
+      responses:
+        "201":
+          description: Loan created
+
+  /loans/{loanId}/return:
+    post:
+      tags: [Loans]
+      summary: Return book
+      parameters:
+        - $ref: "#/components/parameters/loanId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                return_date:
+                  type: string
+                  format: date
+      responses:
+        "200":
+          description: Returned
+
+  /fines:
+    get:
+      tags: [Fines]
+      summary: List fines
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Fine"
+
+  /fines/{fineId}/pay:
+    post:
+      tags: [Fines]
+      summary: Pay fine
+      parameters:
+        - $ref: "#/components/parameters/fineId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paid_amount:
+                  type: number
+      responses:
+        "200":
+          description: Payment recorded
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: List categories
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+    post:
+      tags: [Categories]
+      summary: Add category (Admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryCreate"
+      responses:
+        "201":
+          description: Created
+
+components:
+  parameters:
+    memberId:
+      name: memberId
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    bookId:
+      name: bookId
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    copyId:
+      name: copyId
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    loanId:
+      name: loanId
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    fineId:
+      name: fineId
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  schemas:
+    Member:
+      type: object
+      properties:
+        member_id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        role:
+          type: string
+
+    MemberCreate:
+      type: object
+      required: [name, email, role]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+
+    Book:
+      type: object
+      properties:
+        book_id:
+          type: integer
+        title:
+          type: string
+        isbn:
+          type: string
+        author:
+          type: string
+        publisher:
+          type: string
+        publish_year:
+          type: integer
+        edition:
+          type: integer
+
+    BookCreate:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        isbn:
+          type: string
+        author:
+          type: string
+        publisher:
+          type: string
+        publish_year:
+          type: integer
+        edition:
+          type: integer
+
+    CopyCreate:
+      type: object
+      required: [book_id, status]
+      properties:
+        book_id:
+          type: integer
+        status:
+          type: string
+          enum: [available, unavailable]
+
+    CopyUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [available, unavailable]
+
+    LoanCreate:
+      type: object
+      required: [copy_id, member_id, issue_date, due_date]
+      properties:
+        copy_id:
+          type: integer
+        member_id:
+          type: integer
+        issue_date:
+          type: string
+          format: date
+        due_date:
+          type: string
+          format: date
+
+    Fine:
+      type: object
+      properties:
+        fine_id:
+          type: integer
+        loan_id:
+          type: integer
+        amount:
+          type: number
+        paid_amount:
+          type: number
+        status:
+          type: string
+        paid_date:
+          type: string
+          format: date
+
+    Category:
+      type: object
+      properties:
+        category_id:
+          type: integer
+        category_name:
+          type: string
+
+    CategoryCreate:
+      type: object
+      required: [category_name]
+      properties:
+        category_name:
+          type: string
