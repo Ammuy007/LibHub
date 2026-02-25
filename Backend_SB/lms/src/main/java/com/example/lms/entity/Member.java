@@ -30,11 +30,12 @@ public class Member {
     private String hashedPwd;
 
     @Column(nullable = false)
-    private String role;
-
+    private String role="member";
+    @Column(nullable = false)
+    private String status = "active";
     public Member() {}
 
-    public Integer getMember_id() { return member_id; }
+    public Integer getMemberId() { return member_id; }
     public void setMember_id(Integer member_id) { this.member_id = member_id; }
 
     public String getName() { return name; }
@@ -54,4 +55,7 @@ public class Member {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

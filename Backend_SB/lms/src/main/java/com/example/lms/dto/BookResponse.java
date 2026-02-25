@@ -1,41 +1,18 @@
-package com.example.lms.entity;
+ package com.example.lms.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.*;
+public class BookResponse {
 
-@Entity
-@Table(name = "book")
-public class Book {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    @Column(name = "book_id")
-    private Integer bookId;
-
-    @Column(nullable = false)
+    private Integer book_id;
     private String title;
-
-    @Column(nullable = false, unique = true)
     private String isbn;
-
     private String publisher;
-
     private Integer publish_year;
-
     private Integer edition;
-
     private String author;
-    
-    @Column(length = 2000)
     private String description;
 
-
-   
-    public Integer getBook_id() { return bookId; }
-    public void setBook_id(Integer book_id) { this.bookId = book_id; }
+    public Integer getBook_id() { return book_id; }
+    public void setBook_id(Integer book_id) { this.book_id = book_id; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -54,6 +31,8 @@ public class Book {
 
     public String getAuthor() { return author; }
     public void setAuthor(String author) { this.author = author; }
+
+
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-}
+} 
