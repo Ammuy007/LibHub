@@ -56,6 +56,7 @@ public class BookController {
         service.delete(id);
     }
     @GetMapping("/category/{categoryId}")
+    @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
     public List<Book> getByCategory(@PathVariable Integer categoryId) {
         return service.getBooksByCategory(categoryId);
     }
