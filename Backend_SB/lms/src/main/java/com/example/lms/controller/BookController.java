@@ -2,6 +2,7 @@ package com.example.lms.controller;
 
 import com.example.lms.dto.BookRequest;
 import com.example.lms.dto.BookResponse;
+import com.example.lms.entity.Book;
 import com.example.lms.service.BookService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -53,5 +54,9 @@ public class BookController {
     @PreAuthorize("hasRole('ADMIN')")
     public void delete(@PathVariable Integer id) {
         service.delete(id);
+    }
+    @GetMapping("/category/{categoryId}")
+    public List<Book> getByCategory(@PathVariable Integer categoryId) {
+        return service.getBooksByCategory(categoryId);
     }
 }

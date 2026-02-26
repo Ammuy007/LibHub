@@ -5,9 +5,17 @@ import com.example.lms.entity.Book;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface BookRepository extends JpaRepository<Book, Integer> {
     List<Book> findByIsbnContainingIgnoreCase(String isbn);
     List<Book> findByTitleContainingIgnoreCase(String title);
     List<Book> findByAuthorContainingIgnoreCase(String author);
+    @Query(value = """
+       SELECT * FROM book
+       WHERE book_id IN (
+           SELECT book_id FROM book_category WHERE category_id = :categoryId
+       )
+       """, nativeQuery = true)
+    List<Book> findByCategoryId(Integer categoryId);
 }

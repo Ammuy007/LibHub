@@ -90,4 +90,9 @@ public class BookServiceImpl implements BookService {
     public void delete(Integer id) {
         repo.deleteById(id);
     }
+    @Override
+    public List<Book> getBooksByCategory(Integer categoryId) {
+        return repo.findByCategoryId(categoryId);
+    }
+    
 }

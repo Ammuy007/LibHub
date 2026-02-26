@@ -2,6 +2,7 @@ package com.example.lms.service;
 
 import com.example.lms.dto.BookRequest;
 import com.example.lms.dto.BookResponse;
+import com.example.lms.entity.Book;
 
 import java.util.List;
 
@@ -14,4 +15,5 @@ public interface BookService {
     BookResponse update(Integer id, BookRequest req);
 
     void delete(Integer id);
+    List<Book> getBooksByCategory(Integer categoryId);
 }
