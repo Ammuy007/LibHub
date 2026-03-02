@@ -10,8 +10,8 @@ public class LoanResponse {
     private Integer memberId;
     private String memberName;
     private LocalDate issueDate;
-    // private LocalDate dueDate;
-    // private LocalDate returnDate;
+    private LocalDate dueDate;
+    private LocalDate returnDate;
 
     // constructor
 
@@ -25,8 +25,8 @@ public class LoanResponse {
         this.memberId = memberId;
         this.memberName = memberName;
         this.issueDate = issueDate;
-        // this.dueDate = dueDate;
-        // this.returnDate = returnDate;
+        this.dueDate = dueDate;
+        this.returnDate = returnDate;
     }
 
     // getters
@@ -36,6 +36,6 @@ public class LoanResponse {
     public Integer getMemberId() { return memberId; }
     public String getMemberName() { return memberName; }
     public LocalDate getIssueDate() { return issueDate; }
-    // public LocalDate getDueDate() { return dueDate; }
-    // public LocalDate getReturnDate() { return returnDate; }
+    public LocalDate getDueDate() { return dueDate; }
+    public LocalDate getReturnDate() { return returnDate; }
 }

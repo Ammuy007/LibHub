@@ -13,7 +13,8 @@ public class Member {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Schema(accessMode = Schema.AccessMode.READ_ONLY)   // Swagger: show but not in request
     @JsonProperty(access = JsonProperty.Access.READ_ONLY) // JSON: ignore input
-    private Integer member_id;
+    @Column(name = "member_id")
+    private Integer memberId;
 
     @Column(nullable = false)
     private String name;
@@ -35,8 +36,8 @@ public class Member {
     private String status = "active";
     public Member() {}
 
-    public Integer getMemberId() { return member_id; }
-    public void setMember_id(Integer member_id) { this.member_id = member_id; }
+    public Integer getMemberId() { return memberId; }
+    public void setMemberId(Integer memberId) { this.memberId = memberId; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

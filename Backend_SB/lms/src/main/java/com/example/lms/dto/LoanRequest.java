@@ -7,7 +7,7 @@ public class LoanRequest {
     private Integer copyId;
     private Integer memberId;
     private LocalDate issueDate;
-    private LocalDate returnDate;
+    //private LocalDate returnDate;
 
     public Integer getCopyId() { return copyId; }
     public void setCopyId(Integer copyId) { this.copyId = copyId; }

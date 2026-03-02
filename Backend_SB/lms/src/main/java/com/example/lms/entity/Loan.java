@@ -26,7 +26,7 @@ public class Loan {
     @Column(name = "return_date")
     private LocalDate returnDate;
 
-    @Column(name = "due_date", insertable = false)
+    @Column(name = "due_date")
     private LocalDate dueDate;
 
     // getters & setters
@@ -41,6 +41,7 @@ public class Loan {
     public LocalDate getReturnDate() { return returnDate; }
     public void setReturnDate(LocalDate returnDate) { this.returnDate = returnDate; }
     public LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
     
 
 }

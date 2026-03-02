@@ -16,7 +16,7 @@ public class BookInfoServiceImpl implements BookInfoService {
 
         try {
             // STEP 1: ISBN (edition) lookup
-            System.out.println("FIRST LINE");
+            
             String isbnUrl = "https://openlibrary.org/isbn/" + isbn + ".json";
             Map<?, ?> isbnResponse = restTemplate.getForObject(isbnUrl, Map.class);
 
