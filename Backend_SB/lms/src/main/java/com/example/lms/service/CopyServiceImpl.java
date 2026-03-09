@@ -45,24 +45,36 @@ public class CopyServiceImpl implements CopyService {
     }
 
     @Override
-    public Copy getById(Integer id) {
-        return copyRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Copy not found"));
-    }
+    public List<Copy> getCopies(Integer id, Integer bookId, String status) {
+        String normalizedStatus = status == null ? null : status.trim();
 
-    @Override
-    public List<Copy> getAll() {
+        if (id != null) {
+            Copy copy = copyRepo.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Copy not found"));
+            if (bookId != null && !copy.getBook().getBook_id().equals(bookId)) {
+                return List.of();
+            }
+            if (normalizedStatus != null && !copy.getStatus().equalsIgnoreCase(normalizedStatus)) {
+                return List.of();
+            }
+            return List.of(copy);
+        }
+
+        if (bookId != null && normalizedStatus != null) {
+            return copyRepo.findByBook_BookIdAndStatusIgnoreCase(bookId, normalizedStatus);
+        }
+        if (bookId != null) {
+            return copyRepo.findByBook_BookId(bookId);
+        }
+        if (normalizedStatus != null) {
+            return copyRepo.findByStatusIgnoreCase(normalizedStatus);
+        }
         return copyRepo.findAll();
     }
 
     @Override
     public void delete(Integer id) {
         copyRepo.deleteById(id);
-    }
-
-    @Override
-    public List<Copy> getCopiesOfBook(Integer bookId) {
-        return copyRepo.findByBook_BookId(bookId);
     }
 
     @Override

@@ -11,8 +11,8 @@ public class Member {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(accessMode = Schema.AccessMode.READ_ONLY)   // Swagger: show but not in request
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY) // JSON: ignore input
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)   
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY) 
     @Column(name = "member_id")
     private Integer memberId;
 

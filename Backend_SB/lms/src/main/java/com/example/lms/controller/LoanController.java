@@ -5,14 +5,14 @@ import com.example.lms.dto.LoanResponse;
 import com.example.lms.dto.LoanUpdateRequest;
 import com.example.lms.service.LoanService;
 
+import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
-@RequestMapping("/loans")
+@RequestMapping("v1/loans")
 public class LoanController {
 
     private final LoanService loanService;
@@ -44,23 +44,20 @@ public class LoanController {
         loanService.deleteLoan(id);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
-    public LoanResponse getLoanById(@PathVariable Integer id, Authentication authentication) {
-        
-        //System.out.println("HELLO WORLD");
+    public Page<LoanResponse> getLoans(@RequestParam(required = false) Integer id,
+                                       @RequestParam(required = false, defaultValue = "false") Boolean overdue,
+                                       @RequestParam(defaultValue = "0") Integer page,
+                                       @RequestParam(defaultValue = "10") Integer size,
+                                       Authentication authentication) {
         Integer requesterMemberId = (Integer) authentication.getPrincipal();
         boolean isAdmin = authentication.getAuthorities()
                 .stream()
                 .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        System.out.println("Requester ID: " + requesterMemberId);
-        System.out.println(authentication.getAuthorities());
-        return loanService.getLoanById(id, requesterMemberId, isAdmin);
+        return loanService.getLoans(id, overdue, requesterMemberId, isAdmin, page, size);
     }
 
-    @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<LoanResponse> getAllLoans() {
-        return loanService.getAllLoans();
-    }
+    
+    
 }

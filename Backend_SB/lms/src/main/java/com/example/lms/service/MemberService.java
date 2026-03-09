@@ -2,6 +2,7 @@ package com.example.lms.service;
 
 import com.example.lms.dto.*;
 import com.example.lms.entity.Member;
+import org.springframework.data.domain.Page;
 
 public interface MemberService {
 
@@ -14,8 +15,9 @@ public interface MemberService {
 
     void changePassword(Integer id, ChangePasswordRequest req);
 
-    void deactivateMember(Integer id);
+    void changestatus(Integer id);
 
-    void activateMember(Integer id);
-    MemberResponse getMember(Integer id, Integer requesterId, boolean isAdmin);
+    Page<MemberResponse> getMembers(Integer id, String status, String name,
+                                    Integer requesterId, boolean isAdmin,
+                                    Integer page, Integer size);
 }

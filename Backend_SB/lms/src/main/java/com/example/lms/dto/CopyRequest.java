@@ -3,8 +3,6 @@ package com.example.lms.dto;
 public class CopyRequest {
 
     private Integer bookId;
-    
-    // ✅ NEW: number of copies to create
     private int count;
 
     public Integer getBookId() { return bookId; }

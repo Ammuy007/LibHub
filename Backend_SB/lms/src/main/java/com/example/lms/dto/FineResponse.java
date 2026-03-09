@@ -32,7 +32,7 @@ public class FineResponse {
         this.paidDate = paidDate;
     }
 
-    // getters
+    
     public Integer getFineId() { return fineId; }
     public Integer getLoanId() { return loanId; }
     public Integer getMemberId() { return memberId; }

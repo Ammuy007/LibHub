@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  height: 100%;
+}
+:root {
+  --black-text-primary: 17 24 39;
+  --grey-text-secondary: 107 114 128;
+  --blue-text: 37 99 235;
+  --red-text: 220 38 38;
+}
+body {
+  @apply bg-gray-50 text-gray-800;
+  font-family: "Inter", Arial, Helvetica, sans-serif;
+}

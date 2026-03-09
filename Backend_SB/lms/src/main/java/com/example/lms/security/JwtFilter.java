@@ -49,7 +49,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
             } catch (Exception e) {
-                // invalid token → ignore (request will be unauthorized)
+                
             }
         }
 

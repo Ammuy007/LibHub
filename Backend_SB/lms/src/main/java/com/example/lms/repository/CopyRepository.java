@@ -9,6 +9,8 @@ public interface CopyRepository extends JpaRepository<Copy, Integer> {
 
     // ✅ NEW: all copies of a book
     List<Copy> findByBook_BookId(Integer bookId);
+    List<Copy> findByStatusIgnoreCase(String status);
+    List<Copy> findByBook_BookIdAndStatusIgnoreCase(Integer bookId, String status);
 
     // ✅ NEW: count by status
     long countByBook_BookIdAndStatus(Integer bookId, String status);

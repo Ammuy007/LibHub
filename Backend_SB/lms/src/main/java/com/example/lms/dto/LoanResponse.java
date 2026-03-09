@@ -13,7 +13,7 @@ public class LoanResponse {
     private LocalDate dueDate;
     private LocalDate returnDate;
 
-    // constructor
+    
 
     public LoanResponse(Integer loanId, Integer copyId, String bookTitle,
                         Integer memberId, String memberName,
@@ -29,7 +29,7 @@ public class LoanResponse {
         this.returnDate = returnDate;
     }
 
-    // getters
+    
     public Integer getLoanId() { return loanId; }
     public Integer getCopyId() { return copyId; }
     public String getBookTitle() { return bookTitle; }

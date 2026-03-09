@@ -29,7 +29,7 @@ public class Loan {
     @Column(name = "due_date")
     private LocalDate dueDate;
 
-    // getters & setters
+    
     public Integer getLoanId() { return loanId; }
     public void setLoanId(Integer loanId) { this.loanId = loanId; }
     public Copy getCopy() { return copy; }

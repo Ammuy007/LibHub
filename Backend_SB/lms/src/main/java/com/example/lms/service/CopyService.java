@@ -11,13 +11,9 @@ public interface CopyService {
     
     List<Copy> createCopies(CopyRequest req);
 
-    Copy getById(Integer id);
-
-    List<Copy> getAll();
+    List<Copy> getCopies(Integer id, Integer bookId, String status);
 
     void delete(Integer id);
-
-    List<Copy> getCopiesOfBook(Integer bookId);
 
     
     CopyAvailabilityResponse getAvailability(Integer bookId);

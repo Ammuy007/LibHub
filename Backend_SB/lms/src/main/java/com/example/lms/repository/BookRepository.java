@@ -14,8 +14,11 @@ public interface BookRepository extends JpaRepository<Book, Integer> {
     @Query(value = """
        SELECT * FROM book
        WHERE book_id IN (
-           SELECT book_id FROM book_category WHERE category_id = :categoryId
+           SELECT bc.book_id
+           FROM book_category bc
+           JOIN category c ON c.category_id = bc.category_id
+           WHERE LOWER(c.category_name) LIKE LOWER(CONCAT('%', :categoryName, '%'))
        )
        """, nativeQuery = true)
-    List<Book> findByCategoryId(Integer categoryId);
+    List<Book> findByCategoryName(String categoryName);
 }

@@ -10,8 +10,9 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private final String SECRET = "mysecretkeymysecretkeymysecretkey"; // 32+ chars
-    private final long EXPIRATION = 86400000; // 1 day
+    
+    private final String SECRET="libhub123123123123123123123123123123123123";
+    private final long EXPIRATION = 86400000; 
 
     private Key getKey() {
         return Keys.hmacShaKeyFor(SECRET.getBytes());
@@ -28,22 +29,22 @@ public class JwtUtil {
                 .compact();
     }
 
-    // ✅ Extract email
+    
     public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
     }
 
-    // ✅ Extract role
+    
     public String extractRole(String token) {
         return extractAllClaims(token).get("role", String.class);
     }
 
-    // ✅ Extract memberId
+    
     public Integer extractMemberId(String token) {
         return extractAllClaims(token).get("memberId", Integer.class);
     }
 
-    // internal helper
+    
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getKey())

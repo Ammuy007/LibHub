@@ -10,7 +10,7 @@ public class Copy {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer copy_id;
 
-    // ✅ CHANGED: proper JPA relation instead of book_id field
+    
     @ManyToOne(optional = false)
     @JoinColumn(name = "book_id")
     private Book book;

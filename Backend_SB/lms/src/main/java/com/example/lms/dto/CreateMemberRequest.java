@@ -6,8 +6,7 @@ public class CreateMemberRequest {
     private String email;
     private String phone;
     private String address;
-    private String role; // optional
-
+    private String role; 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 

@@ -24,7 +24,7 @@ public class Fine {
     private BigDecimal paidAmount = BigDecimal.ZERO;
 
     @Column(nullable = false)
-    private String status = "unpaid"; // unpaid | partial | paid
+    private String status = "unpaid"; 
 
     @Column(name = "paid_date")
     private LocalDate paidDate;

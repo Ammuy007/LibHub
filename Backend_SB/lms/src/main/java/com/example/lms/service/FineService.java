@@ -2,8 +2,9 @@ package com.example.lms.service;
 
 import com.example.lms.dto.FineRequest;
 import com.example.lms.dto.FineResponse;
+import org.springframework.data.domain.Page;
 
-import java.util.List;
+
 
 public interface FineService {
 
@@ -12,12 +13,10 @@ public interface FineService {
     FineResponse updateFine(Integer fineId, FineRequest request);
 
     void deleteFine(Integer fineId);
-
-    FineResponse getFine(Integer fineId, Integer requesterMemberId, boolean isAdmin);
-
-    List<FineResponse> getAllFines();
-    List<FineResponse> getFinesForMember(Integer requesterMemberId);
-    List<FineResponse> getFinesByStatus(String status);
+    FineResponse markFinePaid(Integer fineId);
+    Page<FineResponse> getFines(Integer fineId, Integer memberId, String status,
+                                Integer requesterMemberId, boolean isAdmin,
+                                Integer page, Integer size);
 
     void checkAndCreateFine(Integer loanId);
 }

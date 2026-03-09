@@ -9,6 +9,11 @@ import com.example.lms.entity.Member;
 import com.example.lms.repository.CopyRepository;
 import com.example.lms.repository.LoanRepository;
 import com.example.lms.repository.MemberRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -48,7 +53,7 @@ public class LoanServiceImpl implements LoanService {
         throw new RuntimeException("Member already has maximum 3 active loans");
     }
 
-    // ✅ Rule 3: only one copy of same book
+    //  only one copy of same book
     Integer bookId = copy.getBook().getBook_id();
 
     boolean alreadyHasBook =
@@ -74,7 +79,7 @@ public class LoanServiceImpl implements LoanService {
     }
 
     @Override
-public LoanResponse updateLoan(Integer loanId, LoanUpdateRequest request) {
+    public LoanResponse updateLoan(Integer loanId, LoanUpdateRequest request) {
     Loan loan = loanRepository.findById(loanId)
             .orElseThrow(() -> new RuntimeException("Loan not found"));
 
@@ -90,7 +95,7 @@ public LoanResponse updateLoan(Integer loanId, LoanUpdateRequest request) {
         loan.setMember(member);
     }
 
-    // ✅ issueDate update
+    
     if (request.getIssueDate() != null) {
         loan.setIssueDate(request.getIssueDate());
 
@@ -100,12 +105,12 @@ public LoanResponse updateLoan(Integer loanId, LoanUpdateRequest request) {
         }
     }
 
-    // ✅ dueDate explicit override
+    // dueDate explicit override
     if (request.getDueDate() != null) {
         loan.setDueDate(request.getDueDate());
     }
 
-    // ✅ returnDate update
+    // returnDate update
     if (request.getReturnDate() != null) {
         loan.setReturnDate(request.getReturnDate());
     }
@@ -120,24 +125,57 @@ public LoanResponse updateLoan(Integer loanId, LoanUpdateRequest request) {
     }
 
     @Override
-    public LoanResponse getLoanById(Integer loanId, Integer requesterMemberId, boolean isAdmin) {
+    public Page<LoanResponse> getLoans(Integer loanId, Boolean overdue,
+                                       Integer requesterMemberId, boolean isAdmin,
+                                       Integer page, Integer size) {
+        boolean applyOverdue = Boolean.TRUE.equals(overdue);
+        Pageable pageable = buildPageable(page, size, applyOverdue);
+
+        if (loanId == null) {
+            Page<Loan> loanPage;
+            if (isAdmin && applyOverdue) {
+                loanPage = loanRepository.findByReturnDateIsNullAndDueDateBefore(LocalDate.now(), pageable);
+            } else if (isAdmin) {
+                loanPage = loanRepository.findAll(pageable);
+            } else if (applyOverdue) {
+                loanPage = loanRepository.findByMember_MemberIdAndReturnDateIsNullAndDueDateBefore(
+                        requesterMemberId, LocalDate.now(), pageable);
+            } else {
+                loanPage = loanRepository.findByMember_MemberId(requesterMemberId, pageable);
+            }
+            return loanPage.map(this::mapToResponse);
+        }
+
         Loan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new RuntimeException("Loan not found"));
 
         if (!isAdmin && !loan.getMember().getMemberId().equals(requesterMemberId)) {
             throw new AccessDeniedException("You are not allowed to access this loan");
         }
-        System.out.println("Requester: " + requesterMemberId);
-        System.out.println("Loan owner: " + loan.getMember().getMemberId());
-        return mapToResponse(loan);
+        if (applyOverdue) {
+            boolean isOverdue = loan.getReturnDate() == null && loan.getDueDate().isBefore(LocalDate.now());
+            if (!isOverdue) {
+                return Page.empty(pageable);
+            }
+        }
+        return toSinglePage(loan, pageable);
     }
 
-    @Override
-    public List<LoanResponse> getAllLoans() {
-        return loanRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    private Pageable buildPageable(Integer page, Integer size, boolean overdue) {
+        int safePage = page == null || page < 0 ? 0 : page;
+        int safeSize = size == null || size <= 0 ? 10 : size;
+        if (overdue) {
+            return PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "dueDate"));
+        }
+        return PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "issueDate"));
+    }
+
+    private Page<LoanResponse> toSinglePage(Loan loan, Pageable pageable) {
+        if (pageable.getPageNumber() > 0) {
+            return Page.empty(pageable);
+        }
+        List<LoanResponse> content = List.of(mapToResponse(loan));
+        return new PageImpl<>(content, pageable, 1);
     }
 
     private LoanResponse mapToResponse(Loan loan) {
@@ -153,6 +191,14 @@ public LoanResponse updateLoan(Integer loanId, LoanUpdateRequest request) {
         );
     }
     @Override
+    public List<LoanResponse> getOverdueLoans() {
+        return loanRepository.findByReturnDateIsNullAndDueDateBeforeOrderByDueDateAsc(LocalDate.now())
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
     public LoanResponse returnBook(Integer loanId) {
 
     Loan loan = loanRepository.findById(loanId)
@@ -162,10 +208,10 @@ public LoanResponse updateLoan(Integer loanId, LoanUpdateRequest request) {
         throw new RuntimeException("Book already returned");
     }
 
-    // set return date
+    
     loan.setReturnDate(LocalDate.now());
 
-    // mark copy available again
+    
     Copy copy = loan.getCopy();
     copy.setStatus("available");
 
