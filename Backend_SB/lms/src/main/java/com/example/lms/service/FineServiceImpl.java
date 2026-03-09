@@ -72,6 +72,9 @@ public class FineServiceImpl implements FineService {
         Fine fine = new Fine();
         fine.setLoan(loan);
         fine.setAmount(request.getAmount());
+        if (request.getReason() != null) {
+            fine.setReason(request.getReason());
+        }
 
         applyPaymentFields(fine, request);
 
@@ -87,6 +90,9 @@ public class FineServiceImpl implements FineService {
 
         if (request.getAmount() != null)
             fine.setAmount(request.getAmount());
+        if (request.getReason() != null) {
+            fine.setReason(request.getReason());
+        }
 
         applyPaymentFields(fine, request);
 
@@ -208,7 +214,9 @@ public class FineServiceImpl implements FineService {
                 fine.getAmount(),
                 fine.getPaidAmount(),
                 fine.getStatus(),
-                fine.getPaidDate()
+                fine.getPaidDate(),
+                fine.getReason(),
+                fine.getCreatedAt()
         );
     }
 }

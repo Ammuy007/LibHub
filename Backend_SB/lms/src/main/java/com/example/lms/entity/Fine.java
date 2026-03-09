@@ -3,6 +3,7 @@ package com.example.lms.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "fine")
@@ -29,6 +30,11 @@ public class Fine {
     @Column(name = "paid_date")
     private LocalDate paidDate;
 
+    private String reason;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
     public Integer getFineId() { return fineId; }
     public void setFineId(Integer fineId) { this.fineId = fineId; }
     public Loan getLoan() { return loan; }
@@ -42,4 +48,9 @@ public class Fine {
     public LocalDate getPaidDate() { return paidDate; }
     public void setPaidDate(LocalDate paidDate) { this.paidDate = paidDate;}
     
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
+
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
 }

@@ -13,6 +13,8 @@ public class FineResponse {
     private BigDecimal paidAmount;
     private String status;
     private LocalDate paidDate;
+    private String reason;
+    private java.time.OffsetDateTime createdAt;
 
     public FineResponse(Integer fineId,
                         Integer loanId,
@@ -21,7 +23,9 @@ public class FineResponse {
                         BigDecimal amount,
                         BigDecimal paidAmount,
                         String status,
-                        LocalDate paidDate) {
+                        LocalDate paidDate,
+                        String reason,
+                        java.time.OffsetDateTime createdAt) {
         this.fineId = fineId;
         this.loanId = loanId;
         this.memberId = memberId;
@@ -30,6 +34,8 @@ public class FineResponse {
         this.paidAmount = paidAmount;
         this.status = status;
         this.paidDate = paidDate;
+        this.reason = reason;
+        this.createdAt = createdAt;
     }
 
     
@@ -41,4 +47,6 @@ public class FineResponse {
     public BigDecimal getPaidAmount() { return paidAmount; }
     public String getStatus() { return status; }
     public LocalDate getPaidDate() { return paidDate; }
+    public String getReason() { return reason; }
+    public java.time.OffsetDateTime getCreatedAt() { return createdAt; }
 }

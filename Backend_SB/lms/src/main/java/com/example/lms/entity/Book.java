@@ -3,6 +3,7 @@ package com.example.lms.entity;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "book")
@@ -32,6 +33,9 @@ public class Book {
     @Column(length = 2000)
     private String description;
 
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDate createdAt;
+
 
    
     public Integer getBook_id() { return bookId; }
@@ -56,4 +60,7 @@ public class Book {
     public void setAuthor(String author) { this.author = author; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public LocalDate getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDate createdAt) { this.createdAt = createdAt; }
 }

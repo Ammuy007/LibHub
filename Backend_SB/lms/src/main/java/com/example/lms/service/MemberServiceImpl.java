@@ -4,6 +4,7 @@ import com.example.lms.dto.*;
 import com.example.lms.entity.Member;
 import com.example.lms.repository.MemberRepository;
 import com.example.lms.util.PasswordUtil;
+import java.time.LocalDate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -49,6 +50,11 @@ public class MemberServiceImpl implements MemberService {
         String rawPwd = PasswordUtil.generateRandomPassword();
         m.setHashedPwd(encoder.encode(rawPwd));
         m.setStatus("active");
+
+        // ensure membership start is set (database has default current_date)
+        if (m.getMembershipStart() == null) {
+            m.setMembershipStart(LocalDate.now());
+        }
 
         Member saved = repo.save(m);
 
@@ -191,7 +197,9 @@ public class MemberServiceImpl implements MemberService {
                 m.getPhone(),
                 m.getAddress(),
                 m.getRole(),
-                m.getStatus()
+                m.getStatus(),
+                m.getMembershipStart(),
+                m.getMembershipEnd()
         );
     }
 }

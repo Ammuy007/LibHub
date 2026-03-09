@@ -7,6 +7,7 @@ import com.example.lms.repository.BookRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.time.LocalDate;
 
 @Service
 public class BookServiceImpl implements BookService {
@@ -30,6 +31,7 @@ public class BookServiceImpl implements BookService {
         r.setEdition(b.getEdition());
         r.setAuthor(b.getAuthor());
         r.setDescription(b.getDescription()); 
+        r.setCreatedAt(b.getCreatedAt());
         return r;
     }
 

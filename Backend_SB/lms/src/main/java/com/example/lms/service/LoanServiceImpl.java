@@ -71,6 +71,9 @@ public class LoanServiceImpl implements LoanService {
         loan.setIssueDate(request.getIssueDate());
         loan.setReturnDate(null);
         loan.setDueDate(request.getIssueDate().plusDays(14));
+        if (request.getRemarks() != null) {
+            loan.setRemarks(request.getRemarks());
+        }
         
         Loan saved = loanRepository.save(loan);
         copy.setStatus("unavailable");
@@ -113,6 +116,10 @@ public class LoanServiceImpl implements LoanService {
     // returnDate update
     if (request.getReturnDate() != null) {
         loan.setReturnDate(request.getReturnDate());
+    }
+
+    if (request.getRemarks() != null) {
+        loan.setRemarks(request.getRemarks());
     }
 
     Loan updated = loanRepository.save(loan);
@@ -187,7 +194,9 @@ public class LoanServiceImpl implements LoanService {
                 loan.getMember().getName(),
                 loan.getIssueDate(),
                 loan.getDueDate(),
-                loan.getReturnDate()
+                loan.getReturnDate(),
+                loan.getRemarks(),
+                loan.getCreatedAt()
         );
     }
     @Override

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "member")
@@ -34,6 +35,13 @@ public class Member {
     private String role="member";
     @Column(nullable = false)
     private String status = "active";
+
+    @Column(name = "membership_start", nullable = false, updatable = false)
+    private LocalDate membershipStart;
+
+    @Column(name = "membership_end")
+    private LocalDate membershipEnd;
+
     public Member() {}
 
     public Integer getMemberId() { return memberId; }
@@ -59,4 +67,10 @@ public class Member {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public LocalDate getMembershipStart() { return membershipStart; }
+    public void setMembershipStart(LocalDate membershipStart) { this.membershipStart = membershipStart; }
+
+    public LocalDate getMembershipEnd() { return membershipEnd; }
+    public void setMembershipEnd(LocalDate membershipEnd) { this.membershipEnd = membershipEnd; }
 }

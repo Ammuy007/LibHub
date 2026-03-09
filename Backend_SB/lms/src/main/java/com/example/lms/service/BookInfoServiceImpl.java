@@ -53,7 +53,7 @@ public class BookInfoServiceImpl implements BookInfoService {
         return "Description not available7";
     }
 
-    // ✅ NEW helper method
+    
     private String extractDescription(Map<?, ?> json) {
 
         Object desc = json.get("description");

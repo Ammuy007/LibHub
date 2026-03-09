@@ -6,6 +6,7 @@ public class LoanUpdateRequest {
     private LocalDate issueDate;
     private LocalDate returnDate;
     private LocalDate dueDate;
+    private String remarks;
     public Integer getCopyId() { return copyId; }
     public void setCopyId(Integer copyId) { this.copyId = copyId; }
     public Integer getMemberId() { return memberId; }
@@ -15,5 +16,5 @@ public class LoanUpdateRequest {
     public LocalDate getReturnDate() { return returnDate; }
     public void setReturnDate(LocalDate returnDate) { this.returnDate = returnDate; }
     public LocalDate getDueDate() { return dueDate; }
-    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate;}
-}
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate;}    public String getRemarks() { return remarks; }
+    public void setRemarks(String remarks) { this.remarks = remarks; }}

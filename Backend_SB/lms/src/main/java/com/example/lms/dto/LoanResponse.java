@@ -12,13 +12,16 @@ public class LoanResponse {
     private LocalDate issueDate;
     private LocalDate dueDate;
     private LocalDate returnDate;
+    private String remarks;
+    private java.time.OffsetDateTime createdAt;
 
     
 
     public LoanResponse(Integer loanId, Integer copyId, String bookTitle,
                         Integer memberId, String memberName,
                         LocalDate issueDate, LocalDate dueDate,
-                        LocalDate returnDate) {
+                        LocalDate returnDate, String remarks,
+                        java.time.OffsetDateTime createdAt) {
         this.loanId = loanId;
         this.copyId = copyId;
         this.bookTitle = bookTitle;
@@ -27,6 +30,8 @@ public class LoanResponse {
         this.issueDate = issueDate;
         this.dueDate = dueDate;
         this.returnDate = returnDate;
+        this.remarks = remarks;
+        this.createdAt = createdAt;
     }
 
     
@@ -38,4 +43,6 @@ public class LoanResponse {
     public LocalDate getIssueDate() { return issueDate; }
     public LocalDate getDueDate() { return dueDate; }
     public LocalDate getReturnDate() { return returnDate; }
+    public String getRemarks() { return remarks; }
+    public java.time.OffsetDateTime getCreatedAt() { return createdAt; }
 }

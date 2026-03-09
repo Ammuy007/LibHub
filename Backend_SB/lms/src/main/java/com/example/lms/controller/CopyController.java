@@ -23,6 +23,7 @@ public class CopyController {
         r.setCopyId(c.getCopy_id());
         r.setBookId(c.getBook().getBook_id());
         r.setStatus(c.getStatus());
+        r.setCreatedAt(c.getCreatedAt());
         return r;
     }
 

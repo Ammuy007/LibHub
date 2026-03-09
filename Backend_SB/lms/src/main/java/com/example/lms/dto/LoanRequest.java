@@ -8,6 +8,7 @@ public class LoanRequest {
     private Integer memberId;
     private LocalDate issueDate;
     //private LocalDate returnDate;
+    private String remarks;
 
     public Integer getCopyId() { return copyId; }
     public void setCopyId(Integer copyId) { this.copyId = copyId; }
@@ -18,5 +19,7 @@ public class LoanRequest {
     // public LocalDate getReturnDate() { return returnDate; }
     // public void setReturnDate(LocalDate returnDate) { this.returnDate = returnDate; }
     // public LocalDate getDueDate() { return issueDate != null ? issueDate.plusDays(14) : null; }
+    public String getRemarks() { return remarks; }
+    public void setRemarks(String remarks) { this.remarks = remarks; }
 
 }

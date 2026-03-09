@@ -9,6 +9,7 @@ public class FineRequest {
     private BigDecimal paidAmount;
     private String status;
     private LocalDate paidDate;
+    private String reason;
 
     public Integer getLoanId() { return loanId; }
     public void setLoanId(Integer loanId) { this.loanId = loanId; }
@@ -20,4 +21,7 @@ public class FineRequest {
     public void setStatus(String status) { this.status = status; }
     public LocalDate getPaidDate() { return paidDate; }
     public void setPaidDate(LocalDate paidDate) { this.paidDate = paidDate;}
+
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
 }
