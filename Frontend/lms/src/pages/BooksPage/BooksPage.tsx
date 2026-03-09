@@ -4,8 +4,9 @@ import {
   Download,
   Plus,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { MainLayout } from "../../components/ui/layout/MainLayout";
+import { UserLayout } from "../../components/ui/layout/UserLayout";
 import { Modal } from "../../components/modals/Register/Modal";
 import { Input } from "../../components/ui/Input/Input";
 import { Button } from "../../components/ui/Button/Button";
@@ -38,6 +39,9 @@ export const BooksPage: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState("Status");
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdmin = location.pathname === "/books";
+  const Layout = isAdmin ? MainLayout : UserLayout;
 
   // --- Filtering Logic ---
   const filteredBooks = useMemo(() => {
@@ -61,33 +65,39 @@ export const BooksPage: React.FC = () => {
   }, [search, selectedCategory, selectedStatus]);
 
   return (
-    <MainLayout>
-      <div className="max-w-[1600px] mx-auto space-y-6">
+    <Layout>
+      <div className="max-w-[1600px] mx-auto space-y-6 animate-in fade-in duration-700">
         {/* Page Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Books Catalog</h1>
-            <p className="mt-2 text-sm text-gray-500">
-              Manage and organize the complete library inventory.
+            <h1 className="text-3xl font-black text-gray-900">
+              {isAdmin ? "Books Catalog" : "Library Books"}
+            </h1>
+            <p className="mt-2 text-sm text-gray-500 font-medium">
+              {isAdmin
+                ? "Manage and organize the complete library inventory."
+                : "Explore our collection and find your next favorite read."}
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button variant="outline"
-              onClick={() =>
-                exportToCsv(
-                  "books",
-                  ["Title", "Author", "Category", "Status"],
-                  filteredBooks.map((b) => [b.title, b.author, b.category, b.status])
-                )
-              }
-            >
-              <Download size={14} /> Export Data
-            </Button>
-            <Button onClick={() => setIsAddBookOpen(true)}>
-              <Plus size={14} /> Add New Book
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="flex items-center gap-3">
+              <Button variant="outline"
+                onClick={() =>
+                  exportToCsv(
+                    "books",
+                    ["Title", "Author", "Category", "Status"],
+                    filteredBooks.map((b) => [b.title, b.author, b.category, b.status])
+                  )
+                }
+              >
+                <Download size={14} /> Export Data
+              </Button>
+              <Button onClick={() => setIsAddBookOpen(true)}>
+                <Plus size={14} /> Add New Book
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Stats Grid */}
@@ -199,7 +209,7 @@ export const BooksPage: React.FC = () => {
           </div>
         </div>
       </Modal>
-    </MainLayout>
+    </Layout>
   );
 };
 const Stat = ({ label, value, valueClassName = "text-gray-900" }: { label: string; value: string; valueClassName?: string }) => (

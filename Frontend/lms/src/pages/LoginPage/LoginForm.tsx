@@ -20,7 +20,7 @@ export const LoginForm: React.FC = () => {
       return;
     }
 
-    navigate("/userdashboard");
+    navigate("/user/dashboard");
   };
 
   return (

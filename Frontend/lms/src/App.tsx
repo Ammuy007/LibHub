@@ -18,6 +18,8 @@ import { OverdueItemsPage } from "./pages/OverdueItems/OverdueItems";
 import { SettingsPage } from "./pages/Settings/SettingsPage";
 import { UserDashboard } from "./pages/DashboardPage/UserDashboardPage";
 
+import { UserLoansPage } from "./pages/LoansPage/UserLoansPage";
+import { UserFinesPage } from "./pages/FinesPage/UserFinesPage";
 
 function App() {
   return (
@@ -25,7 +27,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/userdashboard" element={<UserDashboard />} />
+        <Route path="/user/dashboard" element={<UserDashboard />} />
         <Route path="/members" element={<MembersPage />} />
         <Route path="/members/:memberId" element={<MemberProfilePage />} />
         <Route path="/books" element={<BooksPage />} />
@@ -35,8 +37,11 @@ function App() {
         <Route path="/fines" element={<FinesPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/overdueitems" element={<OverdueItemsPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/user/loans" element={<UserLoansPage />} />
+        <Route path="/user/fines" element={<UserFinesPage />} />
+        <Route path="/user/books" element={<BooksPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

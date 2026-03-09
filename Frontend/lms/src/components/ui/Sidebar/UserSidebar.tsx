@@ -7,12 +7,10 @@ import {
 import { NavLink } from "react-router-dom";
 
 const navItems = [
-
-
-    { icon: <User size={20} />, label: "Profile", to: "/userdashboard" },
-    { icon: <Handshake size={20} />, label: "My Loans" },
-    { icon: <Wallet size={20} />, label: "Fines & Payments" },
-    { icon: <BookMarked size={20} />, label: "Books" },
+    { icon: <User size={20} />, label: "Profile", to: "/user/dashboard" },
+    { icon: <Handshake size={20} />, label: "My Loans", to: "/user/loans" },
+    { icon: <Wallet size={20} />, label: "Fines & Payments", to: "/user/fines", fineCount: 2 },
+    { icon: <BookMarked size={20} />, label: "Books", to: "/user/books" },
 ];
 
 export const UserSidebar = () => {
