@@ -37,7 +37,8 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
 
     const handleSave = () => {
         // Pass the edited data back to the parent page
-        onSave(formData);
+        const { email, ...updateData } = formData;
+        onSave(updateData);
         onClose();
     };
 
@@ -68,23 +69,15 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
                     className="h-10 text-sm"
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        label="Email Address"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        labelClassName="text-xs font-semibold text-gray-700"
-                        className="h-10 text-sm"
-                    />
-                    <Input
-                        label="Phone Number"
-                        value={formData.phone}
-                        onChange={(e) => handleChange("phone", e.target.value)}
-                        labelClassName="text-xs font-semibold text-gray-700"
-                        className="h-10 text-sm"
-                    />
-                </div>
+                {/* Removed the email input field */}
+                {/* The phone number input now stands alone, or you could wrap it in a div if needed for consistent spacing */}
+                <Input
+                    label="Phone Number"
+                    value={formData.phone}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                    labelClassName="text-xs font-semibold text-gray-700"
+                    className="h-10 text-sm"
+                />
 
                 <Input
                     label="Home Address"

@@ -9,7 +9,7 @@ public interface MemberService {
     Member createMember(CreateMemberRequest req, boolean isAdmin);
 
     Member updateMember(Integer id, UpdateMemberRequest req,
-                        Integer requesterId, boolean isAdmin);
+            Integer requesterId, boolean isAdmin);
 
     void deleteMember(Integer id, Integer requesterId, boolean isAdmin);
 
@@ -18,6 +18,8 @@ public interface MemberService {
     void changestatus(Integer id);
 
     Page<MemberResponse> getMembers(Integer id, String status, String name,
-                                    Integer requesterId, boolean isAdmin,
-                                    Integer page, Integer size);
+            Integer requesterId, boolean isAdmin,
+            Integer page, Integer size);
+
+    Integer getNextMemberId();
 }

@@ -1,20 +1,63 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "../../components/ui/layout/MainLayout";
 import { Button } from "../../components/ui/Button/Button";
 import { SearchBar } from "../../components/ui/SearchBar/SearchBar";
 import { DataTable, TableCell } from "../../components/ui/Table/Table";
 import { exportToCsv } from "../../utils/exportToCsv";
 import { Mail, Download, Book } from "lucide-react";
+import { api } from "../../services/api";
+import type { LoanResponse } from "../../services/api";
+import { formatDateISO } from "../../services/format";
 
 export const OverdueItemsPage: React.FC = () => {
     const [search, setSearch] = useState("");
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+    const [pageSize] = useState(10);
+    const [overdueLoans, setOverdueLoans] = useState<LoanResponse[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const overdueData = [
-        { id: 1, memberId: "LIB-2024-001", member: "Ahmed Zayan", book: "Deep Work", dueDate: "Feb 20, 2024", daysOverdue: 16, fine: 120 },
-        { id: 2, memberId: "LIB-2024-082", member: "Fathima Fidha", book: "Atomic Habits", dueDate: "Feb 24, 2024", daysOverdue: 12, fine: 80 },
-        { id: 3, memberId: "LIB-2023-441", member: "Mohamed Yamin", book: "Clean Code", dueDate: "Feb 26, 2024", daysOverdue: 10, fine: 60 },
-        { id: 4, memberId: "LIB-2024-115", member: "Aishath Sarah", book: "The Alchemist", dueDate: "Mar 01, 2024", daysOverdue: 6, fine: 30 },
-    ];
+    useEffect(() => {
+        let isMounted = true;
+        const loadOverdues = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const loansPage = await api.getLoans({ overdue: true, page, size: pageSize });
+                if (!isMounted) return;
+                setOverdueLoans(loansPage.content);
+                setTotalPages(loansPage.totalPages);
+            } catch (err) {
+                if (!isMounted) return;
+                console.error("Failed to load overdue loans", err);
+                setError("Unable to load overdue loans.");
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        loadOverdues();
+        return () => {
+            isMounted = false;
+        };
+    }, [page]);
+
+    const overdueData = useMemo(() => {
+        return overdueLoans.map((loan) => {
+            const dueDate = new Date(loan.dueDate);
+            const daysOverdue = Math.max(0, Math.ceil((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+            return {
+                id: loan.loanId,
+                memberId: `LIB-${loan.memberId}`,
+                member: loan.memberName,
+                book: loan.bookTitle,
+                dueDate: formatDateISO(loan.dueDate),
+                daysOverdue,
+                fine: daysOverdue * 10,
+            };
+        });
+    }, [overdueLoans]);
 
     const filteredData = useMemo(() => {
         const q = search.toLowerCase();
@@ -25,7 +68,7 @@ export const OverdueItemsPage: React.FC = () => {
                 item.memberId.toLowerCase().includes(q) ||
                 item.book.toLowerCase().includes(q)
         );
-    }, [search]);
+    }, [search, overdueData]);
 
     return (
         <MainLayout>
@@ -65,7 +108,7 @@ export const OverdueItemsPage: React.FC = () => {
                         <SearchBar
                             placeholder="Search by Member ID, Name, or Book Title..."
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                         />
                     </div>
 
@@ -80,7 +123,19 @@ export const OverdueItemsPage: React.FC = () => {
                             "Actions"
                         ]}
                     >
-                        {filteredData.length > 0 ? (
+                        {isLoading ? (
+                            <tr>
+                                <TableCell colSpan={7} center>
+                                    <div className="py-10 text-gray-400 italic">Loading overdue loans...</div>
+                                </TableCell>
+                            </tr>
+                        ) : error ? (
+                            <tr>
+                                <TableCell colSpan={7} center>
+                                    <div className="py-10 text-red-500 italic">{error}</div>
+                                </TableCell>
+                            </tr>
+                        ) : filteredData.length > 0 ? (
                             filteredData.map((item) => (
                                 <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                                     <TableCell center>
@@ -132,13 +187,25 @@ export const OverdueItemsPage: React.FC = () => {
 
                     {/* Pagination Footer */}
                     <div className="mt-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-xs text-gray-500 border-t pt-5">
-                        <p>Showing {filteredData.length} active overdue records</p>
+                        <p>Page {page + 1} of {totalPages}</p>
                         <div className="flex items-center gap-2">
-                            <button className="h-8 px-3 rounded border border-gray-200 bg-white hover:bg-gray-50">Previous</button>
-                            <button className="h-8 min-w-8 px-2 rounded border border-blue-200 bg-blue-50 text-blue-600 font-semibold">1</button>
-                            <button className="h-8 min-w-8 px-2 rounded border border-gray-200 bg-white hover:bg-gray-50">2</button>
-                            <span>...</span>
-                            <button className="h-8 px-3 rounded border border-gray-200 bg-white hover:bg-gray-50">Next</button>
+                            <button
+                                disabled={page === 0}
+                                onClick={() => setPage(page - 1)}
+                                className="h-8 px-3 rounded border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Previous
+                            </button>
+                            <button className="h-8 min-w-8 px-2 rounded border border-blue-200 bg-blue-50 text-blue-600 font-semibold">
+                                {page + 1}
+                            </button>
+                            <button
+                                disabled={page >= totalPages - 1}
+                                onClick={() => setPage(page + 1)}
+                                className="h-8 px-3 rounded border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                Next
+                            </button>
                         </div>
                     </div>
                 </section>

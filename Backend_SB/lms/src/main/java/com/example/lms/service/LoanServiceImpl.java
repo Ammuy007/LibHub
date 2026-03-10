@@ -29,8 +29,8 @@ public class LoanServiceImpl implements LoanService {
     private final MemberRepository memberRepository;
 
     public LoanServiceImpl(LoanRepository loanRepository,
-                           CopyRepository copyRepository,
-                           MemberRepository memberRepository) {
+            CopyRepository copyRepository,
+            MemberRepository memberRepository) {
         this.loanRepository = loanRepository;
         this.copyRepository = copyRepository;
         this.memberRepository = memberRepository;
@@ -43,38 +43,36 @@ public class LoanServiceImpl implements LoanService {
 
         Member member = memberRepository.findById(request.getMemberId())
                 .orElseThrow(() -> new RuntimeException("Member not found"));
-        if(copy.getStatus().equalsIgnoreCase("UNAVAILABLE")) {
+        if (copy.getStatus().equalsIgnoreCase("UNAVAILABLE")) {
             throw new RuntimeException("Copy is currently unavailable");
         }
-        long activeLoans =
-            loanRepository.countByMember_MemberIdAndReturnDateIsNull(member.getMemberId());
+        long activeLoans = loanRepository.countByMember_MemberIdAndReturnDateIsNull(member.getMemberId());
 
-    if (activeLoans >= 3) {
-        throw new RuntimeException("Member already has maximum 3 active loans");
-    }
+        if (activeLoans >= 3) {
+            throw new RuntimeException("Member already has maximum 3 active loans");
+        }
 
-    //  only one copy of same book
-    Integer bookId = copy.getBook().getBook_id();
+        // only one copy of same book
+        Integer bookId = copy.getBook().getBook_id();
 
-    boolean alreadyHasBook =
-            loanRepository.existsByMember_MemberIdAndCopy_Book_BookIdAndReturnDateIsNull(
-                    member.getMemberId(), bookId);
+        boolean alreadyHasBook = loanRepository.existsByMember_MemberIdAndCopy_Book_BookIdAndReturnDateIsNull(
+                member.getMemberId(), bookId);
 
-    if (alreadyHasBook) {
-        throw new RuntimeException("Member already has a copy of this book");
-    }
+        if (alreadyHasBook) {
+            throw new RuntimeException("Member already has a copy of this book");
+        }
         Loan loan = new Loan();
         loan.setCopy(copy);
         loan.setMember(member);
         System.out.println("Issue Date: " + request.getIssueDate());
-        
+
         loan.setIssueDate(request.getIssueDate());
         loan.setReturnDate(null);
         loan.setDueDate(request.getIssueDate().plusDays(14));
         if (request.getRemarks() != null) {
             loan.setRemarks(request.getRemarks());
         }
-        
+
         Loan saved = loanRepository.save(loan);
         copy.setStatus("unavailable");
         copyRepository.save(copy);
@@ -83,48 +81,47 @@ public class LoanServiceImpl implements LoanService {
 
     @Override
     public LoanResponse updateLoan(Integer loanId, LoanUpdateRequest request) {
-    Loan loan = loanRepository.findById(loanId)
-            .orElseThrow(() -> new RuntimeException("Loan not found"));
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException("Loan not found"));
 
-    if (request.getCopyId() != null) {
-        Copy copy = copyRepository.findById(request.getCopyId())
-                .orElseThrow(() -> new RuntimeException("Copy not found"));
-        loan.setCopy(copy);
-    }
-
-    if (request.getMemberId() != null) {
-        Member member = memberRepository.findById(request.getMemberId())
-                .orElseThrow(() -> new RuntimeException("Member not found"));
-        loan.setMember(member);
-    }
-
-    
-    if (request.getIssueDate() != null) {
-        loan.setIssueDate(request.getIssueDate());
-
-        // recompute dueDate only if user didn't send one
-        if (request.getDueDate() == null) {
-            loan.setDueDate(request.getIssueDate().plusDays(14));
+        if (request.getCopyId() != null) {
+            Copy copy = copyRepository.findById(request.getCopyId())
+                    .orElseThrow(() -> new RuntimeException("Copy not found"));
+            loan.setCopy(copy);
         }
-    }
 
-    // dueDate explicit override
-    if (request.getDueDate() != null) {
-        loan.setDueDate(request.getDueDate());
-    }
+        if (request.getMemberId() != null) {
+            Member member = memberRepository.findById(request.getMemberId())
+                    .orElseThrow(() -> new RuntimeException("Member not found"));
+            loan.setMember(member);
+        }
 
-    // returnDate update
-    if (request.getReturnDate() != null) {
-        loan.setReturnDate(request.getReturnDate());
-    }
+        if (request.getIssueDate() != null) {
+            loan.setIssueDate(request.getIssueDate());
 
-    if (request.getRemarks() != null) {
-        loan.setRemarks(request.getRemarks());
-    }
+            // recompute dueDate only if user didn't send one
+            if (request.getDueDate() == null) {
+                loan.setDueDate(request.getIssueDate().plusDays(14));
+            }
+        }
 
-    Loan updated = loanRepository.save(loan);
-    return mapToResponse(updated);
-}
+        // dueDate explicit override
+        if (request.getDueDate() != null) {
+            loan.setDueDate(request.getDueDate());
+        }
+
+        // returnDate update
+        if (request.getReturnDate() != null) {
+            loan.setReturnDate(request.getReturnDate());
+        }
+
+        if (request.getRemarks() != null) {
+            loan.setRemarks(request.getRemarks());
+        }
+
+        Loan updated = loanRepository.save(loan);
+        return mapToResponse(updated);
+    }
 
     @Override
     public void deleteLoan(Integer loanId) {
@@ -132,23 +129,33 @@ public class LoanServiceImpl implements LoanService {
     }
 
     @Override
-    public Page<LoanResponse> getLoans(Integer loanId, Boolean overdue,
-                                       Integer requesterMemberId, boolean isAdmin,
-                                       Integer page, Integer size) {
+    public Page<LoanResponse> getLoans(Integer loanId, Integer memberId, Boolean overdue,
+            Integer requesterMemberId, boolean isAdmin,
+            Integer page, Integer size) {
         boolean applyOverdue = Boolean.TRUE.equals(overdue);
         Pageable pageable = buildPageable(page, size, applyOverdue);
 
         if (loanId == null) {
             Page<Loan> loanPage;
-            if (isAdmin && applyOverdue) {
+            Integer targetMemberId = memberId;
+            if (!isAdmin) {
+                targetMemberId = requesterMemberId;
+            }
+
+            if (targetMemberId != null) {
+                if (applyOverdue) {
+                    loanPage = loanRepository.findByMember_MemberIdAndReturnDateIsNullAndDueDateBefore(
+                            targetMemberId, LocalDate.now(), pageable);
+                } else {
+                    loanPage = loanRepository.findByMember_MemberId(targetMemberId, pageable);
+                }
+            } else if (isAdmin && applyOverdue) {
                 loanPage = loanRepository.findByReturnDateIsNullAndDueDateBefore(LocalDate.now(), pageable);
             } else if (isAdmin) {
                 loanPage = loanRepository.findAll(pageable);
-            } else if (applyOverdue) {
-                loanPage = loanRepository.findByMember_MemberIdAndReturnDateIsNullAndDueDateBefore(
-                        requesterMemberId, LocalDate.now(), pageable);
             } else {
-                loanPage = loanRepository.findByMember_MemberId(requesterMemberId, pageable);
+                // Should not happen for non-admin without memberId
+                return Page.empty(pageable);
             }
             return loanPage.map(this::mapToResponse);
         }
@@ -196,9 +203,9 @@ public class LoanServiceImpl implements LoanService {
                 loan.getDueDate(),
                 loan.getReturnDate(),
                 loan.getRemarks(),
-                loan.getCreatedAt()
-        );
+                loan.getCreatedAt());
     }
+
     @Override
     public List<LoanResponse> getOverdueLoans() {
         return loanRepository.findByReturnDateIsNullAndDueDateBeforeOrderByDueDateAsc(LocalDate.now())
@@ -206,27 +213,25 @@ public class LoanServiceImpl implements LoanService {
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
-    
+
     @Override
     public LoanResponse returnBook(Integer loanId) {
 
-    Loan loan = loanRepository.findById(loanId)
-            .orElseThrow(() -> new RuntimeException("Loan not found"));
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException("Loan not found"));
 
-    if (loan.getReturnDate() != null) {
-        throw new RuntimeException("Book already returned");
-    }
+        if (loan.getReturnDate() != null) {
+            throw new RuntimeException("Book already returned");
+        }
 
-    
-    loan.setReturnDate(LocalDate.now());
+        loan.setReturnDate(LocalDate.now());
 
-    
-    Copy copy = loan.getCopy();
-    copy.setStatus("available");
+        Copy copy = loan.getCopy();
+        copy.setStatus("available");
 
-    copyRepository.save(copy);
-    Loan updated = loanRepository.save(loan);
+        copyRepository.save(copy);
+        Loan updated = loanRepository.save(loan);
 
-    return mapToResponse(updated);
+        return mapToResponse(updated);
     }
 }

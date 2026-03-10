@@ -11,6 +11,7 @@ public class BookResponse {
     private String author;
     private String description;
     private java.time.LocalDate createdAt;
+    private java.util.List<String> categories;
 
     public Integer getBook_id() { return book_id; }
     public void setBook_id(Integer book_id) { this.book_id = book_id; }
@@ -39,5 +40,8 @@ public class BookResponse {
 
     public java.time.LocalDate getCreatedAt() { return createdAt; }
     public void setCreatedAt(java.time.LocalDate createdAt) { this.createdAt = createdAt; }
+
+    public java.util.List<String> getCategories() { return categories; }
+    public void setCategories(java.util.List<String> categories) { this.categories = categories; }
 
 } 

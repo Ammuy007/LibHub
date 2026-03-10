@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { UserLayout } from "../../components/ui/layout/UserLayout";
 import {
     Book,
@@ -9,22 +9,80 @@ import {
 import { DataTable, TableCell } from "../../components/ui/Table/Table";
 import { StatCard } from "../../components/ui/StatCard/StatCard";
 import { SearchBar } from "../../components/ui/SearchBar/SearchBar";
+import { api } from "../../services/api";
+import type { BookResponse, LoanResponse } from "../../services/api";
+import { formatDateISO, isOverdue } from "../../services/format";
 
 export const UserLoansPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState("");
-    const activeCheckouts = [
-        { id: "LOAN-7721", title: "The Design of Everyday Things", author: "Don Norman", checkoutDate: "Oct 12, 2023", dueDate: "Oct 26, 2023", status: "On Time" },
-        { id: "LOAN-8842", title: "Clean Code: A Handbook of Agile Software Craftsmanship", author: "Robert C. Martin", checkoutDate: "Sep 28, 2023", dueDate: "Oct 12, 2023", status: "Overdue" },
-        { id: "LOAN-9910", title: "Thinking, Fast and Slow", author: "Daniel Kahneman", checkoutDate: "Oct 05, 2023", dueDate: "Oct 19, 2023", status: "On Time" },
-        { id: "LOAN-4411", title: "Atomic Habits", author: "James Clear", checkoutDate: "Oct 15, 2023", dueDate: "Oct 29, 2023", status: "On Time" },
-        { id: "LOAN-5562", title: "Harry Potter: The Chamber of Secrets", author: "JK Rowling", checkoutDate: "Sep 28, 2024", dueDate: "Oct 12, 2024", status: "Overdue" },
-    ];
+    const [loans, setLoans] = useState<LoanResponse[]>([]);
+    const [booksByTitle, setBooksByTitle] = useState<Record<string, BookResponse>>({});
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const recentlyReturned = [
-        { title: "Sapiens: A Brief History of Humankind", author: "Yuval Noah Harari", returnedDate: "Sep 15, 2023", rating: 5 },
-        { title: "The Lean Startup", author: "Eric Ries", returnedDate: "Aug 22, 2023", rating: 4 },
-        { title: "Dune", author: "Frank Herbert", returnedDate: "Jul 10, 2023", rating: 5 },
-    ];
+    useEffect(() => {
+        let isMounted = true;
+        const loadLoans = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const [loansPage, books] = await Promise.all([
+                    api.getLoans({ page: 0, size: 200 }),
+                    api.getBooks(),
+                ]);
+                if (!isMounted) return;
+                setLoans(loansPage.content);
+                const byTitle = books.reduce<Record<string, BookResponse>>((acc, book) => {
+                    acc[book.title] = book;
+                    return acc;
+                }, {});
+                setBooksByTitle(byTitle);
+            } catch (err) {
+                if (!isMounted) return;
+                console.error("Failed to load loans", err);
+                setError("Unable to load loans right now.");
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        loadLoans();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const activeCheckouts = useMemo(() => {
+        return loans
+            .filter((loan) => !loan.returnDate)
+            .map((loan) => {
+                const book = booksByTitle[loan.bookTitle];
+                const overdue = isOverdue(loan.dueDate, loan.returnDate);
+                return {
+                    id: `LOAN-${loan.loanId}`,
+                    title: loan.bookTitle,
+                    author: book?.author ?? "Unknown",
+                    checkoutDate: formatDateISO(loan.issueDate),
+                    dueDate: formatDateISO(loan.dueDate),
+                    status: overdue ? "Overdue" : "On Time",
+                };
+            });
+    }, [loans, booksByTitle]);
+
+    const recentlyReturned = useMemo(() => {
+        return loans
+            .filter((loan) => loan.returnDate)
+            .slice(0, 3)
+            .map((loan) => {
+                const book = booksByTitle[loan.bookTitle];
+                return {
+                    title: loan.bookTitle,
+                    author: book?.author ?? "Unknown",
+                    returnedDate: formatDateISO(loan.returnDate ?? ""),
+                    rating: 5,
+                };
+            });
+    }, [loans, booksByTitle]);
 
     const filteredActive = activeCheckouts.filter(loan =>
         loan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -62,14 +120,14 @@ export const UserLoansPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <StatCard
                         title="Total Active"
-                        value={5}
+                        value={isLoading ? "—" : activeCheckouts.length}
                         subtitle="Books currently in your possession"
                         icon={<Book size={24} />}
                         color="blue"
                     />
                     <StatCard
                         title="Overdue Loans"
-                        value={1}
+                        value={isLoading ? "—" : activeCheckouts.filter((loan) => loan.status === "Overdue").length}
                         subtitle="Require immediate attention"
                         icon={<AlertCircle size={24} />}
                         color="red"
@@ -81,33 +139,47 @@ export const UserLoansPage: React.FC = () => {
                 <div className="space-y-4">
                     <h3 className="text-lg font-black text-gray-900 uppercase tracking-wide">Active Checkouts</h3>
                     <DataTable headers={["Book Details", "Checkout Date", "Due Date", "Status"]} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        {filteredActive.map((loan) => (
-                            <tr key={loan.id} className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 last:border-0">
-                                <TableCell>
-                                    <p className="text-base font-black text-gray-900 leading-tight">{loan.title}</p>
-                                    <p className="text-xs text-gray-400 font-bold uppercase mt-1">by {loan.author}</p>
-                                    <p className="text-[10px] text-gray-300 font-bold mt-1 uppercase tracking-wider">{loan.id}</p>
-                                </TableCell>
-                                <TableCell center>
-                                    <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-700">
-                                        <Clock size={16} className="text-gray-400" /> {loan.checkoutDate}
-                                    </div>
-                                </TableCell>
-                                <TableCell center>
-                                    <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-700">
-                                        <Clock size={16} className="text-gray-400" /> {loan.dueDate}
-                                    </div>
-                                </TableCell>
-                                <TableCell center>
-                                    <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${loan.status === 'Overdue'
-                                        ? 'bg-red-500 text-white shadow-md shadow-red-100'
-                                        : 'bg-gray-100 text-gray-600'
-                                        }`}>
-                                        {loan.status}
-                                    </span>
+                        {isLoading ? (
+                            <tr>
+                                <TableCell colSpan={4} center>
+                                    <div className="py-8 text-gray-400 italic">Loading loans...</div>
                                 </TableCell>
                             </tr>
-                        ))}
+                        ) : error ? (
+                            <tr>
+                                <TableCell colSpan={4} center>
+                                    <div className="py-8 text-red-500 italic">{error}</div>
+                                </TableCell>
+                            </tr>
+                        ) : (
+                            filteredActive.map((loan) => (
+                                <tr key={loan.id} className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 last:border-0">
+                                    <TableCell>
+                                        <p className="text-base font-black text-gray-900 leading-tight">{loan.title}</p>
+                                        <p className="text-xs text-gray-400 font-bold uppercase mt-1">by {loan.author}</p>
+                                        <p className="text-[10px] text-gray-300 font-bold mt-1 uppercase tracking-wider">{loan.id}</p>
+                                    </TableCell>
+                                    <TableCell center>
+                                        <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-700">
+                                            <Clock size={16} className="text-gray-400" /> {loan.checkoutDate}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell center>
+                                        <div className="flex items-center justify-center gap-2 text-sm font-bold text-gray-700">
+                                            <Clock size={16} className="text-gray-400" /> {loan.dueDate}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell center>
+                                        <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${loan.status === 'Overdue'
+                                            ? 'bg-red-500 text-white shadow-md shadow-red-100'
+                                            : 'bg-gray-100 text-gray-600'
+                                            }`}>
+                                            {loan.status}
+                                        </span>
+                                    </TableCell>
+                                </tr>
+                            ))
+                        )}
                     </DataTable>
                 </div>
 
@@ -119,23 +191,29 @@ export const UserLoansPage: React.FC = () => {
                             <h3 className="text-lg font-black text-gray-900 uppercase tracking-wide">Recently Returned</h3>
                         </div>
                         <div className="space-y-4">
-                            {filteredReturned.map((item, i) => (
-                                <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-                                    <div className="flex items-center gap-5">
-                                        <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 border border-gray-100">
-                                            <Book size={24} />
+                            {isLoading ? (
+                                <div className="text-sm text-gray-400 italic">Loading returns...</div>
+                            ) : error ? (
+                                <div className="text-sm text-red-500 italic">{error}</div>
+                            ) : (
+                                filteredReturned.map((item, i) => (
+                                    <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                                        <div className="flex items-center gap-5">
+                                            <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 border border-gray-100">
+                                                <Book size={24} />
+                                            </div>
+                                            <div>
+                                                <p className="text-base font-black text-gray-900">{item.title}</p>
+                                                <p className="text-sm text-gray-400 font-bold mt-0.5">by {item.author}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-base font-black text-gray-900">{item.title}</p>
-                                            <p className="text-sm text-gray-400 font-bold mt-0.5">by {item.author}</p>
+                                        <div className="text-right">
+                                            <p className="text-xs font-black text-gray-400 uppercase tracking-wide">Returned</p>
+                                            <p className="text-sm font-bold text-gray-900 mt-1">{item.returnedDate}</p>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-xs font-black text-gray-400 uppercase tracking-wide">Returned</p>
-                                        <p className="text-sm font-bold text-gray-900 mt-1">{item.returnedDate}</p>
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
 

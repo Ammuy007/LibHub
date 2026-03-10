@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { UserLayout } from "../../components/ui/layout/UserLayout";
 import {
   Info,
@@ -8,6 +8,9 @@ import {
 } from "lucide-react";
 import { DataTable, TableCell } from "../../components/ui/Table/Table";
 import { FilterSelect } from "../../components/ui/FilterSelect/FilterSelect";
+import { api } from "../../services/api";
+import type { FineResponse, LoanResponse } from "../../services/api";
+import { formatCurrency, formatDateISO } from "../../services/format";
 
 interface FineDetail {
   id: string;
@@ -18,20 +21,69 @@ interface FineDetail {
   status: "Unpaid" | "Paid";
 }
 
-const mockFines: FineDetail[] = [
-  { id: "F-1024", bookTitle: "The Great Gatsby", loanId: "L-9051", dateIncurred: "Oct 12, 2023", amount: "Rs.12.50", status: "Unpaid" },
-  { id: "F-1025", bookTitle: "Sapiens: A Brief History of Humankind", loanId: "L-8822", dateIncurred: "Nov 02, 2023", amount: "Rs.45.00", status: "Unpaid" },
-  { id: "F-1021", bookTitle: "Clean Code", loanId: "L-7741", dateIncurred: "Sep 15, 2023", amount: "Rs.5.25", status: "Paid" },
-  { id: "F-1029", bookTitle: "Atomic Habits", loanId: "L-8211", dateIncurred: "Dec 05, 2023", amount: "Rs.2.00", status: "Unpaid" },
-  { id: "F-1018", bookTitle: "Thinking, Fast and Slow", loanId: "L-6652", dateIncurred: "Aug 20, 2023", amount: "Rs.32.00", status: "Paid" },
-];
-
 export const UserFinesPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("Status");
+  const [fines, setFines] = useState<FineResponse[]>([]);
+  const [loans, setLoans] = useState<LoanResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredFines = mockFines.filter(fine =>
+  useEffect(() => {
+    let isMounted = true;
+    const loadFines = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [finesPage, loansPage] = await Promise.all([
+          api.getFines({ page: 0, size: 200 }),
+          api.getLoans({ page: 0, size: 200 }),
+        ]);
+        if (!isMounted) return;
+        setFines(finesPage.content);
+        setLoans(loansPage.content);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error("Failed to load fines", err);
+        setError("Unable to load fines right now.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadFines();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const fineDetails = useMemo<FineDetail[]>(() => {
+    const loanById = loans.reduce<Record<number, LoanResponse>>((acc, loan) => {
+      acc[loan.loanId] = loan;
+      return acc;
+    }, {});
+    return fines.map((fine) => {
+      const loan = loanById[fine.loanId];
+      return {
+        id: `F-${fine.fineId}`,
+        bookTitle: loan?.bookTitle ?? "-",
+        loanId: `L-${fine.loanId}`,
+        dateIncurred: formatDateISO(fine.createdAt ?? fine.paidDate ?? ""),
+        amount: formatCurrency(fine.amount),
+        status: fine.status?.toLowerCase() === "paid" ? "Paid" : "Unpaid",
+      };
+    });
+  }, [fines, loans]);
+
+  const filteredFines = fineDetails.filter(fine =>
     statusFilter === "Status" || fine.status === statusFilter
   );
+
+  const totalFineAmount = fineDetails.reduce((sum, fine) => {
+    const numeric = Number(fine.amount.replace(/[^0-9.]/g, ""));
+    return sum + (Number.isNaN(numeric) ? 0 : numeric);
+  }, 0);
+  const unpaidCount = fineDetails.filter((fine) => fine.status === "Unpaid").length;
+  const paidCount = fineDetails.filter((fine) => fine.status === "Paid").length;
 
   return (
     <UserLayout>
@@ -46,10 +98,10 @@ export const UserFinesPage: React.FC = () => {
         <div className="relative bg-blue-500 rounded-3xl p-10 overflow-hidden shadow-xl shadow-blue-100">
           <div className="relative z-10 space-y-2">
             <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest">Total Fine</p>
-            <h2 className="text-5xl font-black text-white">Rs.200.00</h2>
+            <h2 className="text-5xl font-black text-white">{formatCurrency(totalFineAmount)}</h2>
             <div className="flex items-center gap-2 text-blue-50 pt-2">
               <Clock size={14} />
-              <p className="text-xs font-bold">2 individual charges require your attention.</p>
+              <p className="text-xs font-bold">{unpaidCount} individual charge{unpaidCount === 1 ? "" : "s"} require your attention.</p>
             </div>
           </div>
           {/* Abstract Card Shape Decoration */}
@@ -63,7 +115,7 @@ export const UserFinesPage: React.FC = () => {
           <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:border-blue-200 transition-all">
             <div className="space-y-4">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Unpaid Penalties</p>
-              <h3 className="text-4xl font-black text-gray-900">2</h3>
+              <h3 className="text-4xl font-black text-gray-900">{unpaidCount}</h3>
             </div>
             <span className="px-4 py-1.5 bg-red-50 text-red-500 text-[10px] font-black uppercase tracking-wider rounded-full shadow-sm shadow-red-50">
               Action Required
@@ -72,7 +124,7 @@ export const UserFinesPage: React.FC = () => {
           <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:border-blue-200 transition-all">
             <div className="space-y-4">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Paid (Last 30 Days)</p>
-              <h3 className="text-4xl font-black text-gray-900">2</h3>
+              <h3 className="text-4xl font-black text-gray-900">{paidCount}</h3>
             </div>
             <CheckCircle2 size={32} className="text-gray-100" />
           </div>
@@ -97,41 +149,55 @@ export const UserFinesPage: React.FC = () => {
               headers={["Fine ID", "Book", "Date Incurred", "Amount", "Status"]}
               className="w-full"
             >
-              {filteredFines.map((fine) => (
-                <tr key={fine.id} className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 last:border-0 group">
-                  <TableCell>
-                    <span className="text-sm font-bold text-gray-400 font-mono tracking-tight group-hover:text-blue-500 transition-colors">
-                      {fine.id}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="text-md font-black text-gray-900 leading-tight">{fine.bookTitle}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[15px] text-gray-400 font-bold uppercase">ID: {fine.loanId}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-
-                  <TableCell center>
-                    <div className="flex items-center justify-center gap-2">
-                      <Clock size={14} className="text-gray-300" />
-                      <span className="text-xs font-bold text-gray-700">{fine.dateIncurred}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell center>
-                    <span className="text-sm font-black text-gray-900">{fine.amount}</span>
-                  </TableCell>
-                  <TableCell center>
-                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm ${fine.status === "Unpaid"
-                      ? "bg-red-500 text-white shadow-red-100"
-                      : "bg-blue-50 text-blue-500 shadow-blue-50"
-                      }`}>
-                      {fine.status}
-                    </span>
+              {isLoading ? (
+                <tr>
+                  <TableCell colSpan={5} center>
+                    <div className="py-10 text-gray-400 italic">Loading fines...</div>
                   </TableCell>
                 </tr>
-              ))}
+              ) : error ? (
+                <tr>
+                  <TableCell colSpan={5} center>
+                    <div className="py-10 text-red-500 italic">{error}</div>
+                  </TableCell>
+                </tr>
+              ) : (
+                filteredFines.map((fine) => (
+                  <tr key={fine.id} className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 last:border-0 group">
+                    <TableCell>
+                      <span className="text-sm font-bold text-gray-400 font-mono tracking-tight group-hover:text-blue-500 transition-colors">
+                        {fine.id}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-md font-black text-gray-900 leading-tight">{fine.bookTitle}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[15px] text-gray-400 font-bold uppercase">ID: {fine.loanId}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    <TableCell center>
+                      <div className="flex items-center justify-center gap-2">
+                        <Clock size={14} className="text-gray-300" />
+                        <span className="text-xs font-bold text-gray-700">{fine.dateIncurred}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell center>
+                      <span className="text-sm font-black text-gray-900">{fine.amount}</span>
+                    </TableCell>
+                    <TableCell center>
+                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm ${fine.status === "Unpaid"
+                        ? "bg-red-500 text-white shadow-red-100"
+                        : "bg-blue-50 text-blue-500 shadow-blue-50"
+                        }`}>
+                        {fine.status}
+                      </span>
+                    </TableCell>
+                  </tr>
+                ))
+              )}
             </DataTable>
           </div>
         </div>

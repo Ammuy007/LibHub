@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Download, Search, Plus, X, Receipt } from "lucide-react";
 import { MainLayout } from "../../components/ui/layout/MainLayout";
 import { Modal } from "../../components/modals/Register/Modal";
@@ -6,6 +6,9 @@ import { Input } from "../../components/ui/Input/Input";
 import { Button } from "../../components/ui/Button/Button";
 import { DataTable, TableCell } from "../../components/ui/Table/Table";
 import { exportToCsv } from "../../utils/exportToCsv";
+import { api } from "../../services/api";
+import type { LoanResponse } from "../../services/api";
+import { formatDateISO } from "../../services/format";
 
 type FineStatus = "Unpaid" | "Paid";
 
@@ -23,80 +26,74 @@ type FineRecord = {
   status: FineStatus;
 };
 
-const initialFines: FineRecord[] = [
-  {
-    id: "F-1001",
-    member: "Sarah Jenkins",
-    memberId: "M-5021",
-    book: "The Midnight Library",
-    loanId: "L-8820",
-    dueDate: "2024-05-10",
-    returnedDate: "2024-05-22",
-    overdueDays: 10,
-    ratePerDay: 10,
-    amount: 100,
-    status: "Unpaid",
-  },
-  {
-    id: "F-1002",
-    member: "Michael Chen",
-    memberId: "M-3312",
-    book: "Atomic Habits",
-    loanId: "L-7331",
-    dueDate: "2024-05-18",
-    returnedDate: "2024-05-22",
-    overdueDays: 4,
-    ratePerDay: 25,
-    amount: 100,
-    status: "Unpaid",
-  },
-  {
-    id: "F-1003",
-    member: "Elena Rodriguez",
-    memberId: "M-4480",
-    book: "Project Hail Mary",
-    loanId: "L-2262",
-    dueDate: "2024-04-26",
-    returnedDate: "2024-05-10",
-    overdueDays: 14,
-    ratePerDay: 10,
-    amount: 140,
-    status: "Paid",
-  },
-  {
-    id: "F-1004",
-    member: "David Smith",
-    memberId: "M-1209",
-    book: "Dune: Part One",
-    loanId: "L-4152",
-    dueDate: "2024-05-01",
-    returnedDate: "2024-05-26",
-    overdueDays: 25,
-    ratePerDay: 5,
-    amount: 125,
-    status: "Unpaid",
-  },
-  {
-    id: "F-1005",
-    member: "Aisha Khan",
-    memberId: "M-6071",
-    book: "The Alchemist",
-    loanId: "L-1023",
-    dueDate: "2024-05-14",
-    returnedDate: "2024-05-19",
-    overdueDays: 5,
-    ratePerDay: 5,
-    amount: 25,
-    status: "Unpaid",
-  },
-];
-
 export const FinesPage: React.FC = () => {
-  const [fines, setFines] = useState<FineRecord[]>(initialFines);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [pageSize] = useState(10);
+  const [fines, setFines] = useState<FineRecord[]>([]);
   const [tab, setTab] = useState<"all" | "unpaid" | "paid">("all");
   const [search, setSearch] = useState("");
   const [selectedFineId, setSelectedFineId] = useState<string | null>(null);
   const [isManualFineOpen, setIsManualFineOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadFines = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [finesPage, loansPage] = await Promise.all([
+          api.getFines({ page, size: pageSize }),
+          api.getLoans({ page: 0, size: 1000 }), // Get more loans for mapping
+        ]);
+        if (!isMounted) return;
+        setTotalPages(finesPage.totalPages);
+        const loansById = loansPage.content.reduce<Record<number, LoanResponse>>((acc, loan) => {
+          acc[loan.loanId] = loan;
+          return acc;
+        }, {});
+
+        const mapped = finesPage.content.map((fine) => {
+          const loan = loansById[fine.loanId];
+          const dueDate = loan?.dueDate ? new Date(loan.dueDate) : null;
+          const returnedDate = loan?.returnDate ? new Date(loan.returnDate) : null;
+          const now = new Date();
+          const effectiveReturn = returnedDate ?? now;
+          const overdueDays = dueDate ? Math.max(0, Math.ceil((effectiveReturn.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+          const ratePerDay = overdueDays > 0 ? Math.round(fine.amount / overdueDays) || 10 : 10;
+          const status: FineStatus = fine.status?.toLowerCase() === "paid" ? "Paid" : "Unpaid";
+          return {
+            id: `F-${fine.fineId}`,
+            member: fine.memberName ?? "-",
+            memberId: `M-${fine.memberId}`,
+            book: loan?.bookTitle ?? "-",
+            loanId: `L-${fine.loanId}`,
+            dueDate: loan?.dueDate ? formatDateISO(loan.dueDate) : "-",
+            returnedDate: loan?.returnDate ? formatDateISO(loan.returnDate) : "-",
+            overdueDays,
+            ratePerDay,
+            amount: fine.amount ?? 0,
+            status,
+          };
+        });
+
+        setFines(mapped);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error("Failed to load fines", err);
+        setError("Unable to load fines right now.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadFines();
+    return () => {
+      isMounted = false;
+    };
+  }, [page]);
 
   const filteredFines = useMemo(() => {
     return fines.filter((fine) => {
@@ -123,15 +120,23 @@ export const FinesPage: React.FC = () => {
   const totalFineAmount = fines.reduce((sum, fine) => sum + fine.amount, 0);
   const pendingCount = fines.filter((fine) => fine.status === "Unpaid").length;
 
-  const markAsPaid = () => {
+  const markAsPaid = async () => {
     if (!selectedFine || selectedFine.status === "Paid") {
       return;
     }
-    setFines((prev) =>
-      prev.map((fine) =>
-        fine.id === selectedFine.id ? { ...fine, status: "Paid" } : fine,
-      ),
-    );
+    try {
+      const numericId = Number(selectedFine.id.replace(/[^0-9]/g, ""));
+      if (Number.isNaN(numericId)) return;
+      await api.markFinePaid(numericId);
+      setFines((prev) =>
+        prev.map((fine) =>
+          fine.id === selectedFine.id ? { ...fine, status: "Paid" } : fine,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to mark fine as paid", err);
+      window.alert("Unable to update fine status right now.");
+    }
   };
 
   return (
@@ -185,9 +190,9 @@ export const FinesPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl">
             <StatCard
               title="Total Fine"
-              value={`Rs. ${totalFineAmount.toFixed(2)}`}
+              value={isLoading || error ? "—" : `Rs. ${totalFineAmount.toFixed(2)}`}
             />
-            <StatCard title="Pending Records" value={String(pendingCount)} />
+            <StatCard title="Pending Records" value={isLoading || error ? "—" : String(pendingCount)} />
           </div>
 
           <section className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
@@ -196,17 +201,17 @@ export const FinesPage: React.FC = () => {
                 <TabButton
                   active={tab === "all"}
                   label="All Fines"
-                  onClick={() => setTab("all")}
+                  onClick={() => { setTab("all"); setPage(0); }}
                 />
                 <TabButton
                   active={tab === "unpaid"}
                   label="Unpaid"
-                  onClick={() => setTab("unpaid")}
+                  onClick={() => { setTab("unpaid"); setPage(0); }}
                 />
                 <TabButton
                   active={tab === "paid"}
                   label="Resolved"
-                  onClick={() => setTab("paid")}
+                  onClick={() => { setTab("paid"); setPage(0); }}
                 />
               </div>
               <div className="flex items-center gap-2 w-full md:w-auto">
@@ -228,45 +233,79 @@ export const FinesPage: React.FC = () => {
             </div>
 
             <DataTable headers={["ID", "Member", "Book Item", "Overdue", "Amount", "Status"]}>
-              {filteredFines.map((fine) => (
-                <tr
-                  key={fine.id}
-                  className={`cursor-pointer transition-colors ${selectedFine?.id === fine.id ? "bg-blue-50" : "hover:bg-gray-50/50"
-                    }`}
-                  onClick={() => setSelectedFineId(selectedFine?.id === fine.id ? null : fine.id)}
-                >
-                  <TableCell>
-                    <span className="text-xs font-mono text-gray-400">{fine.id}</span>
-                  </TableCell>
-                  <TableCell>
-                    <p className="font-bold text-gray-900">{fine.member}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{fine.memberId}</p>
-                  </TableCell>
-                  <TableCell center>
-                    <span className="text-gray-800">{fine.book}</span>
-                  </TableCell>
-                  <TableCell center>
-                    <span className={fine.overdueDays >= 10 ? "font-black text-red-600" : "text-gray-700"}>
-                      {fine.overdueDays}d
-                    </span>
-                  </TableCell>
-                  <TableCell center>
-                    <span className="font-black text-gray-900">Rs. {fine.amount.toFixed(2)}</span>
-                  </TableCell>
-                  <TableCell center>
-                    <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-black ${fine.status === "Paid" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
-                      }`}>
-                      {fine.status}
-                    </span>
+              {isLoading ? (
+                <tr>
+                  <TableCell colSpan={6} center>
+                    <div className="py-10 text-gray-400 italic">Loading fines...</div>
                   </TableCell>
                 </tr>
-              ))}
+              ) : error ? (
+                <tr>
+                  <TableCell colSpan={6} center>
+                    <div className="py-10 text-red-500 italic">{error}</div>
+                  </TableCell>
+                </tr>
+              ) : (
+                filteredFines.map((fine) => (
+                  <tr
+                    key={fine.id}
+                    className={`cursor-pointer transition-colors ${selectedFine?.id === fine.id ? "bg-blue-50" : "hover:bg-gray-50/50"
+                      }`}
+                    onClick={() => setSelectedFineId(selectedFine?.id === fine.id ? null : fine.id)}
+                  >
+                    <TableCell>
+                      <span className="text-xs font-mono text-gray-400">{fine.id}</span>
+                    </TableCell>
+                    <TableCell>
+                      <p className="font-bold text-gray-900">{fine.member}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{fine.memberId}</p>
+                    </TableCell>
+                    <TableCell center>
+                      <span className="text-gray-800">{fine.book}</span>
+                    </TableCell>
+                    <TableCell center>
+                      <span className={fine.overdueDays >= 10 ? "font-black text-red-600" : "text-gray-700"}>
+                        {fine.overdueDays}d
+                      </span>
+                    </TableCell>
+                    <TableCell center>
+                      <span className="font-black text-gray-900">Rs. {fine.amount.toFixed(2)}</span>
+                    </TableCell>
+                    <TableCell center>
+                      <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-black ${fine.status === "Paid" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
+                        }`}>
+                        {fine.status}
+                      </span>
+                    </TableCell>
+                  </tr>
+                ))
+              )}
             </DataTable>
-            {filteredFines.length === 0 && (
+            {!isLoading && !error && filteredFines.length === 0 && (
               <div className="p-8 text-center text-gray-500 text-sm">
                 No fines found.
               </div>
             )}
+
+            <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-gray-50/30">
+              <p>Page {page + 1} of {totalPages}</p>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={page === 0}
+                  onClick={() => setPage(page - 1)}
+                  className="h-8 px-3 rounded border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <button
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage(page + 1)}
+                  className="h-8 px-3 rounded border border-gray-200 bg-white hover:bg-gray-50 font-semibold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </section>
         </div>
 

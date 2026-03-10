@@ -53,8 +53,8 @@ export const DateFilterModal: React.FC<DateFilterModalProps> = ({
                             key={tab}
                             onClick={() => setView(tab as any)}
                             className={`px-6 py-2 rounded-full text-[11px] font-bold border transition-all flex items-center gap-1.5 ${view === tab
-                                    ? "bg-blue-600 text-white border-blue-600" // Updated to Blue/White
-                                    : "bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-200"
+                                ? "bg-blue-600 text-white border-blue-600" // Updated to Blue/White
+                                : "bg-gray-50 text-gray-400 border-gray-100 hover:border-gray-200"
                                 }`}
                         >
                             <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${view === tab ? 'bg-white border-white' : 'border-gray-300'}`}>
@@ -77,8 +77,8 @@ export const DateFilterModal: React.FC<DateFilterModalProps> = ({
                                         disabled={isFuture}
                                         onClick={() => setSelectedMonth(idx)}
                                         className={`py-3.5 rounded-2xl text-xs font-bold transition-all ${selectedMonth === idx
-                                                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20 scale-105" // Updated to Blue/White
-                                                : "text-gray-500 hover:bg-gray-50 disabled:opacity-20 disabled:hover:bg-transparent"
+                                            ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20 scale-105" // Updated to Blue/White
+                                            : "text-gray-500 hover:bg-gray-50 disabled:opacity-20 disabled:hover:bg-transparent"
                                             }`}
                                     >
                                         {month}
@@ -91,8 +91,8 @@ export const DateFilterModal: React.FC<DateFilterModalProps> = ({
                                     key={year}
                                     onClick={() => setSelectedYear(year)}
                                     className={`py-3.5 rounded-2xl text-xs font-bold transition-all ${selectedYear === year
-                                            ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20 scale-105" // Updated to Blue/White
-                                            : "text-gray-500 hover:bg-gray-50"
+                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20 scale-105" // Updated to Blue/White
+                                        : "text-gray-500 hover:bg-gray-50"
                                         }`}
                                 >
                                     {year}

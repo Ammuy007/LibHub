@@ -12,13 +12,15 @@ public interface LoanService {
     LoanResponse createLoan(LoanRequest request);
 
     LoanResponse updateLoan(Integer loanId, LoanUpdateRequest request);
+
     LoanResponse returnBook(Integer loanId);
 
     void deleteLoan(Integer loanId);
 
-    Page<LoanResponse> getLoans(Integer loanId, Boolean overdue,
-                                Integer requesterMemberId, boolean isAdmin,
-                                Integer page, Integer size);
+    Page<LoanResponse> getLoans(Integer loanId, Integer memberId, Boolean overdue,
+            Integer requesterMemberId, boolean isAdmin,
+            Integer page, Integer size);
+
     List<LoanResponse> getOverdueLoans();
 
 }

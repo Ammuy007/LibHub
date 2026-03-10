@@ -1,38 +1,27 @@
-import React, { useMemo, useState } from "react";
-import {
-  BookPlus,
-  Download,
-  Plus,
-} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Download, Plus } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MainLayout } from "../../components/ui/layout/MainLayout";
 import { UserLayout } from "../../components/ui/layout/UserLayout";
-import { Modal } from "../../components/modals/Register/Modal";
-import { Input } from "../../components/ui/Input/Input";
 import { Button } from "../../components/ui/Button/Button";
 import { SearchBar } from "../../components/ui/SearchBar/SearchBar";
 import { FilterSelect } from "../../components/ui/FilterSelect/FilterSelect";
 import { DataTable, TableCell } from "../../components/ui/Table/Table";
+import { AddBookModal } from "../../components/modals/QuickLinks/AddBookModal/AddBookModal";
 import { exportToCsv } from "../../utils/exportToCsv";
+import { api } from "../../services/api";
+import type { BookResponse, CopyResponse } from "../../services/api";
 
-// --- Static Data ---
-const books = [
-  { title: "The Midnight Library", author: "Matt Haig", category: "Contemporary Fiction", publisher: "Canongate Books", isbn: "978-1786892706", inventory: "8 / 12", status: "In Stock", statusType: "ok" },
-  { title: "Atomic Habits", author: "James Clear", category: "Self-Help", publisher: "Penguin Random House", isbn: "978-0735211292", inventory: "0 / 25", status: "Out of Stock", statusType: "out" },
-  { title: "Project Hail Mary", author: "Andy Weir", category: "Fiction", publisher: "Ballantine Books", isbn: "978-0593135204", inventory: "14 / 15", status: "In Stock", statusType: "ok" },
-  { title: "The Silent Patient", author: "Alex Michaelides", category: "Thriller", publisher: "Celadon Books", isbn: "978-1250301697", inventory: "2 / 10", status: "In Stock", statusType: "ok" },
-  { title: "Dune", author: "Frank Herbert", category: "Fiction", publisher: "Chilton Books", isbn: "978-0441172719", inventory: "18 / 20", status: "In Stock", statusType: "ok" },
-  { title: "The Great Gatsby", author: "F. Scott Fitzgerald", category: "Classic", publisher: "Charles Scribner's Sons", isbn: "978-0743273565", inventory: "5 / 8", status: "In Stock", statusType: "ok" },
-  { title: "Sapiens: A Brief History of Humankind", author: "Yuval Noah Harari", category: "Non-Fiction", publisher: "Harper", isbn: "978-0062316097", inventory: "12 / 18", status: "In Stock", statusType: "ok" },
-];
-
-// Helper to get unique categories for the filter
-const categories = ["Categories", ...Array.from(new Set(books.map((b) => b.category)))];
 const statuses = ["Status", "In Stock", "Out of Stock"];
 
 export const BooksPage: React.FC = () => {
   const [isAddBookOpen, setIsAddBookOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [books, setBooks] = useState<BookResponse[]>([]);
+  const [copies, setCopies] = useState<CopyResponse[]>([]);
+  const [dbCategories, setDbCategories] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // --- Filter States ---
   const [selectedCategory, setSelectedCategory] = useState("Categories");
@@ -43,9 +32,94 @@ export const BooksPage: React.FC = () => {
   const isAdmin = location.pathname === "/books";
   const Layout = isAdmin ? MainLayout : UserLayout;
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchAllCategories = async () => {
+      try {
+        const pageSize = 100;
+        let page = 0;
+        let all: string[] = [];
+        while (true) {
+          const res = await api.getCategories({ page, size: pageSize });
+          all = all.concat(res.content.map((c) => c.category_name));
+          if (res.number + 1 >= res.totalPages) break;
+          page += 1;
+        }
+        return Array.from(new Set(all)).sort((a, b) => a.localeCompare(b));
+      } catch (err) {
+        return [];
+      }
+    };
+
+    const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [booksResponse, copiesResponse, categoriesResponse] = await Promise.all([
+          api.getBooks(),
+          api.getCopies().catch(() => [] as CopyResponse[]),
+          fetchAllCategories(),
+        ]);
+        if (!isMounted) return;
+        setBooks(booksResponse);
+        setCopies(copiesResponse);
+        setDbCategories(categoriesResponse);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error("Failed to load books", err);
+        setError("Unable to load books right now.");
+        setBooks([]);
+        setCopies([]);
+        setDbCategories([]);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const inventoryByBookId = useMemo(() => {
+    return copies.reduce<Record<number, { total: number; available: number }>>((acc, copy) => {
+      const entry = acc[copy.bookId] ?? { total: 0, available: 0 };
+      entry.total += 1;
+      if (copy.status?.toLowerCase() === "available") entry.available += 1;
+      acc[copy.bookId] = entry;
+      return acc;
+    }, {});
+  }, [copies]);
+
+  const mappedBooks = useMemo(() => {
+    return books.map((book) => {
+      const stats = inventoryByBookId[book.book_id] ?? { total: 0, available: 0 };
+      const statusType = stats.available === 0 ? "out" : stats.available <= 2 ? "low" : "ok";
+      const rawCategories = Array.isArray(book.categories) ? book.categories.filter(Boolean) : [];
+      const safeCategories = rawCategories.length ? rawCategories : ["Uncategorized"];
+      return {
+        title: book.title,
+        author: book.author ?? "Unknown",
+        categories: safeCategories,
+        categoryDisplay: safeCategories.slice(0, 3).join(" | "),
+        publisher: book.publisher ?? "-",
+        isbn: book.isbn ?? "-",
+        inventory: `${stats.available} / ${stats.total}`,
+        status: stats.available === 0 ? "Out of Stock" : "In Stock",
+        statusType,
+      };
+    });
+  }, [books, inventoryByBookId]);
+
+  const categories = useMemo(() => {
+    return ["Categories", ...dbCategories];
+  }, [dbCategories]);
+
   // --- Filtering Logic ---
   const filteredBooks = useMemo(() => {
-    return books.filter((b) => {
+    return mappedBooks.filter((b) => {
       const matchesSearch =
         !search ||
         b.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -54,7 +128,7 @@ export const BooksPage: React.FC = () => {
 
       const matchesCategory =
         selectedCategory === "Categories" ||
-        b.category === selectedCategory;
+        b.categories.includes(selectedCategory);
 
       const matchesStatus =
         selectedStatus === "Status" ||
@@ -62,7 +136,7 @@ export const BooksPage: React.FC = () => {
 
       return matchesSearch && matchesCategory && matchesStatus;
     });
-  }, [search, selectedCategory, selectedStatus]);
+  }, [search, selectedCategory, selectedStatus, mappedBooks]);
 
   return (
     <Layout>
@@ -87,7 +161,7 @@ export const BooksPage: React.FC = () => {
                   exportToCsv(
                     "books",
                     ["Title", "Author", "Category", "Status"],
-                    filteredBooks.map((b) => [b.title, b.author, b.category, b.status])
+                    filteredBooks.map((b) => [b.title, b.author, b.categoryDisplay, b.status])
                   )
                 }
               >
@@ -102,10 +176,10 @@ export const BooksPage: React.FC = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <Stat label="Total Titles" value="1,248" valueClassName="text-blue-600" />
-          <Stat label="Total Copies" value="4,820" />
-          <Stat label="Out of Stock" value="42" valueClassName="text-red-600" />
-          <Stat label="Active Categories" value="24" />
+          <Stat label="Total Titles" value={isLoading ? "—" : String(mappedBooks.length)} valueClassName="text-blue-600" />
+          <Stat label="Total Copies" value={isLoading ? "—" : String(copies.length)} />
+          <Stat label="Out of Stock" value={isLoading ? "—" : String(mappedBooks.filter((b) => b.status === "Out of Stock").length)} valueClassName="text-red-600" />
+          <Stat label="Active Categories" value={isLoading ? "—" : String(categories.length - 1)} />
         </div>
 
         {/* Main Section */}
@@ -124,6 +198,8 @@ export const BooksPage: React.FC = () => {
               label={selectedCategory}
               options={categories}
               onSelect={setSelectedCategory}
+              searchable
+              searchPlaceholder="Search categories..."
             />
 
             {/* Status Dropdown */}
@@ -135,10 +211,22 @@ export const BooksPage: React.FC = () => {
           </div>
 
           <DataTable headers={["Book Title & Author", "Category", "Publisher & ISBN", "Inventory", "Status"]}>
-            {filteredBooks.length > 0 ? (
+            {isLoading ? (
+              <tr>
+                <TableCell colSpan={5} center>
+                  <div className="py-20 text-gray-400 italic">Loading books...</div>
+                </TableCell>
+              </tr>
+            ) : error ? (
+              <tr>
+                <TableCell colSpan={5} center>
+                  <div className="py-20 text-red-500 italic">{error}</div>
+                </TableCell>
+              </tr>
+            ) : filteredBooks.length > 0 ? (
               filteredBooks.map((book) => (
                 <tr
-                  key={book.isbn}
+                  key={`${book.title}-${book.isbn}`}
                   className="hover:bg-gray-50/50 transition-colors cursor-pointer"
                   onClick={() => navigate(`/books/${encodeURIComponent(book.title)}`)}
                 >
@@ -148,7 +236,7 @@ export const BooksPage: React.FC = () => {
                   </TableCell>
                   <TableCell center>
                     <span className="inline-flex px-3 py-1 rounded-lg text-xs font-bold bg-gray-100 text-gray-600">
-                      {book.category}
+                      {book.categoryDisplay}
                     </span>
                   </TableCell>
                   <TableCell center>
@@ -181,34 +269,37 @@ export const BooksPage: React.FC = () => {
         </section>
       </div>
 
-      {/* Register New Book Modal */}
-      <Modal
+      <AddBookModal
         isOpen={isAddBookOpen}
         onClose={() => setIsAddBookOpen(false)}
-        title="Register New Book"
-        icon={<BookPlus size={18} />}
-        variant="branded"
-        maxWidthClassName="max-w-3xl"
-        footer={
-          <div className="flex items-center justify-end gap-3">
-            <Button variant="outline" className="h-9 px-4 text-sm" onClick={() => setIsAddBookOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => setIsAddBookOpen(false)}>Save Book to Catalog</Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          <Input label="Book Title *" placeholder="e.g. The Midnight Library" labelClassName="text-xs font-semibold text-gray-700" className="h-10 text-sm" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="ISBN-13" placeholder="978-XXXXXXXXXX" labelClassName="text-xs font-semibold text-gray-700" className="h-10 text-sm" />
-            <div className="flex flex-col space-y-3">
-              <label className="text-xs font-semibold text-gray-700">Category</label>
-              <FilterSelect label="Select category" options={categories.slice(1)} onSelect={() => { }} />
-            </div>
-          </div>
-        </div>
-      </Modal>
+        onCreated={async () => {
+          setIsAddBookOpen(false);
+          setIsLoading(true);
+          setError(null);
+          try {
+            const pageSize = 100;
+            let page = 0;
+            let all: string[] = [];
+            while (true) {
+              const res = await api.getCategories({ page, size: pageSize });
+              all = all.concat(res.content.map((c) => c.category_name));
+              if (res.number + 1 >= res.totalPages) break;
+              page += 1;
+            }
+            const [booksResponse, copiesResponse] = await Promise.all([
+              api.getBooks(),
+              api.getCopies().catch(() => [] as CopyResponse[]),
+            ]);
+            setBooks(booksResponse);
+            setCopies(copiesResponse);
+            setDbCategories(Array.from(new Set(all)).sort((a, b) => a.localeCompare(b)));
+          } catch (err) {
+            console.error("Failed to refresh after book creation", err);
+          } finally {
+            setIsLoading(false);
+          }
+        }}
+      />
     </Layout>
   );
 };

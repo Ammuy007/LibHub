@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   BookCopy,
   CheckCircle,
@@ -18,50 +18,8 @@ import { DataTable, TableCell } from "../../components/ui/Table/Table";
 import { FilterSelect } from "../../components/ui/FilterSelect/FilterSelect";
 import { exportToCsv } from "../../utils/exportToCsv";
 import { StatCard } from "../../components/ui/StatCard/StatCard";
-
-// --- Static Data ---
-const copyRows = [
-  {
-    id: "LMS-BK-001-A",
-    title: "The Great Gatsby",
-    author: "F. Scott Fitzgerald",
-    holder: "Library Shelf",
-    status: "Available",
-    statusType: "available",
-  },
-  {
-    id: "LMS-BK-001-B",
-    title: "The Great Gatsby",
-    author: "F. Scott Fitzgerald",
-    holder: "Sarah Jenkins",
-    status: "Issued",
-    statusType: "issued",
-  },
-  {
-    id: "LMS-BK-552-C",
-    title: "Introduction to Algorithms",
-    author: "Cormen et al.",
-    holder: "Amrutha P",
-    status: "Issued",
-    statusType: "issued",
-  },
-  {
-    id: "LMS-BK-112-A",
-    title: "Clean Code",
-    author: "Robert C. Martin",
-    holder: "Library-Shelf",
-    status: "Available",
-    statusType: "available",
-  },
-  {
-    id: "LMS-BK-088-A",
-    title: "Thinking, Fast and Slow",
-    author: "Daniel Kahneman",
-    holder: "Shelly Sharma",
-    status: "Issued",
-    statusType: "issued",
-  },
-];
+import { api } from "../../services/api";
+import type { BookResponse, CopyResponse, LoanResponse } from "../../services/api";
 
 export const CopiesPage: React.FC = () => {
   // --- States ---
@@ -70,18 +28,91 @@ export const CopiesPage: React.FC = () => {
   const [copiesCount, setCopiesCount] = useState("1");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Status");
+  const [copies, setCopies] = useState<CopyResponse[]>([]);
+  const [booksById, setBooksById] = useState<Record<number, BookResponse>>({});
+  const [loansByCopyId, setLoansByCopyId] = useState<Record<number, LoanResponse>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const statuses = ["Status", "Available", "Issued"];
   // --- Handlers ---
-  const handleAddCopies = () => {
+  const handleAddCopies = async () => {
     if (!bookName.trim()) return;
     const count = Number.parseInt(copiesCount, 10);
     if (Number.isNaN(count) || count <= 0) return;
 
-    // Logic for adding copies would go here
-    setIsAddModalOpen(false);
-    setBookName("");
-    setCopiesCount("1");
+    try {
+      const books = Object.values(booksById);
+      const match = books.find((book) => book.title.toLowerCase() === bookName.trim().toLowerCase());
+      if (!match?.book_id) {
+        window.alert("Book not found in catalog.");
+        return;
+      }
+      await api.createCopies(match.book_id, count);
+      const refreshed = await api.getCopies();
+      setCopies(refreshed);
+      setIsAddModalOpen(false);
+      setBookName("");
+      setCopiesCount("1");
+    } catch (err) {
+      console.error("Failed to add copies", err);
+      window.alert("Unable to add copies right now.");
+    }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCopies = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [copiesResponse, books, loansPage] = await Promise.all([
+          api.getCopies(),
+          api.getBooks(),
+          api.getLoans({ page: 0, size: 500 }),
+        ]);
+        if (!isMounted) return;
+        setCopies(copiesResponse);
+        const byId = books.reduce<Record<number, BookResponse>>((acc, book) => {
+          acc[book.book_id] = book;
+          return acc;
+        }, {});
+        setBooksById(byId);
+        const activeLoans = loansPage.content.filter((loan) => !loan.returnDate);
+        const loanMap = activeLoans.reduce<Record<number, LoanResponse>>((acc, loan) => {
+          acc[loan.copyId] = loan;
+          return acc;
+        }, {});
+        setLoansByCopyId(loanMap);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error("Failed to load copies", err);
+        setError("Unable to load copies right now.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadCopies();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const copyRows = useMemo(() => {
+    return copies.map((copy) => {
+      const book = booksById[copy.bookId];
+      const loan = loansByCopyId[copy.copyId];
+      const issued = !!loan;
+      return {
+        id: `LMS-BK-${copy.copyId}`,
+        title: book?.title ?? "Unknown",
+        author: book?.author ?? "Unknown",
+        holder: issued ? loan.memberName : "Library Shelf",
+        status: issued ? "Issued" : "Available",
+        statusType: issued ? "issued" : "available",
+      };
+    });
+  }, [copies, booksById, loansByCopyId]);
 
   // --- Search & Status Filtering Logic ---
   const filteredCopyRows = useMemo(() => {
@@ -102,7 +133,7 @@ export const CopiesPage: React.FC = () => {
 
       return matchesSearch && matchesStatus;
     });
-  }, [search, statusFilter]);// Re-run when search or statusFilter changes
+  }, [search, statusFilter, copyRows]);// Re-run when search or statusFilter changes
 
   return (
     <MainLayout>
@@ -143,23 +174,21 @@ export const CopiesPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl">
           <StatCard
             title="Total Inventory"
-            value="12,312"
+            value={isLoading ? "—" : String(copyRows.length)}
             subtitle="+140 this month"
-
             icon={<BookCopy size={16} />}
             color="blue"
-
           />
           <StatCard
             title="Currently Available"
-            value="8,210"
+            value={isLoading ? "—" : String(copyRows.filter((r) => r.statusType === "available").length)}
             subtitle="65.7% of total"
             icon={<CheckCircle size={16} />}
             color="green"
           />
           <StatCard
             title="On Loan"
-            value="4,102"
+            value={isLoading ? "—" : String(copyRows.filter((r) => r.statusType === "issued").length)}
             subtitle="12 overdue currently"
             icon={<Clock3 size={16} />}
             color="red"
@@ -192,7 +221,19 @@ export const CopiesPage: React.FC = () => {
 
           {/* Data Table */}
           <DataTable headers={["Copy ID", "Book Title & Author", "Current Holder", "Status"]}>
-            {filteredCopyRows.length > 0 ? (
+            {isLoading ? (
+              <tr>
+                <TableCell colSpan={4} center>
+                  <div className="py-10 text-gray-400 italic">Loading copies...</div>
+                </TableCell>
+              </tr>
+            ) : error ? (
+              <tr>
+                <TableCell colSpan={4} center>
+                  <div className="py-10 text-red-500 italic">{error}</div>
+                </TableCell>
+              </tr>
+            ) : filteredCopyRows.length > 0 ? (
               filteredCopyRows.map((row) => (
                 <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
                   <TableCell>
@@ -230,7 +271,7 @@ export const CopiesPage: React.FC = () => {
           {/* Pagination Footer */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-xs text-gray-500 border-t pt-4">
             <p>
-              Showing {filteredCopyRows.length} of {search ? filteredCopyRows.length : "12,482"} copies
+              Showing {filteredCopyRows.length} of {copyRows.length} copies
             </p>
             <div className="flex items-center gap-2">
               <button className="h-8 px-3 rounded border border-gray-200 bg-white hover:bg-gray-50">Previous</button>
@@ -283,4 +324,3 @@ export const CopiesPage: React.FC = () => {
     </MainLayout>
   );
 };
-

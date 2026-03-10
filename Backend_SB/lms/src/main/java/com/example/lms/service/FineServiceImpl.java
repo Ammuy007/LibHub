@@ -25,15 +25,17 @@ public class FineServiceImpl implements FineService {
     private final LoanRepository loanRepository;
 
     public FineServiceImpl(FineRepository fineRepository,
-                           LoanRepository loanRepository) {
+            LoanRepository loanRepository) {
         this.fineRepository = fineRepository;
         this.loanRepository = loanRepository;
     }
-    @Scheduled(cron = "0 0 1 * * ?") 
+
+    @Scheduled(cron = "0 0 1 * * ?")
     public void checkAndCreateFinesScheduled() {
         loanRepository.findAll()
                 .forEach(loan -> checkAndCreateFine(loan.getLoanId()));
     }
+
     // AUTO CREATE when overdue
     @Override
     public void checkAndCreateFine(Integer loanId) {
@@ -41,17 +43,17 @@ public class FineServiceImpl implements FineService {
         Loan loan = loanRepository.findById(loanId)
                 .orElseThrow(() -> new RuntimeException("Loan not found"));
 
-        
-        if (loan.getReturnDate() != null) return;
+        if (loan.getReturnDate() != null)
+            return;
 
-       
-        if (!loan.getDueDate().isBefore(LocalDate.now())) return;
+        if (!loan.getDueDate().isBefore(LocalDate.now()))
+            return;
 
-        
-        if (fineRepository.findByLoan_LoanId(loanId).isPresent()) return;
+        if (fineRepository.findByLoan_LoanId(loanId).isPresent())
+            return;
 
         long daysLate = loan.getDueDate().until(LocalDate.now()).getDays();
-        BigDecimal amount = BigDecimal.valueOf(daysLate * 10); 
+        BigDecimal amount = BigDecimal.valueOf(daysLate * 10);
 
         Fine fine = new Fine();
         fine.setLoan(loan);
@@ -62,7 +64,6 @@ public class FineServiceImpl implements FineService {
         fineRepository.save(fine);
     }
 
-    
     @Override
     public FineResponse createFine(FineRequest request) {
 
@@ -81,7 +82,6 @@ public class FineServiceImpl implements FineService {
         return map(fineRepository.save(fine));
     }
 
-  
     @Override
     public FineResponse updateFine(Integer fineId, FineRequest request) {
 
@@ -110,12 +110,11 @@ public class FineServiceImpl implements FineService {
         if (request.getPaidDate() != null)
             fine.setPaidDate(request.getPaidDate());
 
-        
         if (fine.getPaidAmount() != null && fine.getAmount() != null) {
-        if (fine.getPaidAmount().compareTo(fine.getAmount()) >= 0)
-            fine.setStatus("paid");
-        else
-            fine.setStatus("unpaid");
+            if (fine.getPaidAmount().compareTo(fine.getAmount()) >= 0)
+                fine.setStatus("paid");
+            else
+                fine.setStatus("unpaid");
         }
     }
 
@@ -126,8 +125,8 @@ public class FineServiceImpl implements FineService {
 
     @Override
     public Page<FineResponse> getFines(Integer fineId, Integer memberId, String status,
-                                       Integer requesterMemberId, boolean isAdmin,
-                                       Integer page, Integer size) {
+            Integer requesterMemberId, boolean isAdmin,
+            Integer page, Integer size) {
         String normalizedStatus = status == null ? null : status.trim().toLowerCase();
         Pageable pageable = buildPageable(page, size);
 
@@ -138,22 +137,28 @@ public class FineServiceImpl implements FineService {
         if (fineId == null) {
             Page<Fine> finePage;
             if (isAdmin) {
-                if (memberId != null && normalizedStatus != null) {
-                    finePage = fineRepository.findByLoanMemberMemberIdAndStatusIgnoreCase(
-                            memberId, normalizedStatus, pageable);
-                } else if (memberId != null) {
-                    finePage = fineRepository.findByLoanMemberMemberId(memberId, pageable);
+                if (memberId != null) {
+                    List<Fine> sortedFines = fineRepository.findByMemberIdSorted(memberId);
+                    int start = Math.min((int) pageable.getOffset(), sortedFines.size());
+                    int end = Math.min((start + pageable.getPageSize()), sortedFines.size());
+                    List<Fine> pagedContent = sortedFines.subList(start, end);
+                    finePage = new PageImpl<>(pagedContent, pageable, sortedFines.size());
                 } else if (normalizedStatus != null) {
                     finePage = fineRepository.findByStatusIgnoreCase(normalizedStatus, pageable);
                 } else {
                     finePage = fineRepository.findAll(pageable);
                 }
             } else {
+                Integer targetMemberId = requesterMemberId;
                 if (normalizedStatus != null) {
                     finePage = fineRepository.findByLoanMemberMemberIdAndStatusIgnoreCase(
-                            requesterMemberId, normalizedStatus, pageable);
+                            targetMemberId, normalizedStatus, pageable);
                 } else {
-                    finePage = fineRepository.findByLoanMemberMemberId(requesterMemberId, pageable);
+                    List<Fine> sortedFines = fineRepository.findByMemberIdSorted(targetMemberId);
+                    int start = Math.min((int) pageable.getOffset(), sortedFines.size());
+                    int end = Math.min((start + pageable.getPageSize()), sortedFines.size());
+                    List<Fine> pagedContent = sortedFines.subList(start, end);
+                    finePage = new PageImpl<>(pagedContent, pageable, sortedFines.size());
                 }
             }
             return finePage.map(this::map);
@@ -174,6 +179,7 @@ public class FineServiceImpl implements FineService {
         }
         return toSinglePage(fine, pageable);
     }
+
     @Override
     public FineResponse markFinePaid(Integer fineId) {
 
@@ -183,7 +189,6 @@ public class FineServiceImpl implements FineService {
         if ("paid".equalsIgnoreCase(fine.getStatus()))
             return map(fine);
 
-        
         fine.setPaidAmount(fine.getAmount());
         fine.setStatus("paid");
         fine.setPaidDate(LocalDate.now());
@@ -191,6 +196,7 @@ public class FineServiceImpl implements FineService {
         Fine updated = fineRepository.save(fine);
         return map(updated);
     }
+
     private Pageable buildPageable(Integer page, Integer size) {
         int safePage = page == null || page < 0 ? 0 : page;
         int safeSize = size == null || size <= 0 ? 10 : size;
@@ -203,6 +209,7 @@ public class FineServiceImpl implements FineService {
         }
         return new PageImpl<>(List.of(map(fine)), pageable, 1);
     }
+
     private FineResponse map(Fine fine) {
         Loan loan = fine.getLoan();
 
@@ -216,7 +223,6 @@ public class FineServiceImpl implements FineService {
                 fine.getStatus(),
                 fine.getPaidDate(),
                 fine.getReason(),
-                fine.getCreatedAt()
-        );
+                fine.getCreatedAt());
     }
 }

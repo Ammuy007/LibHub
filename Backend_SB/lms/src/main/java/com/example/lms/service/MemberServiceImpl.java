@@ -13,7 +13,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
-
 @Service
 public class MemberServiceImpl implements MemberService {
 
@@ -22,8 +21,8 @@ public class MemberServiceImpl implements MemberService {
     private final EmailService emailService;
 
     public MemberServiceImpl(MemberRepository repo,
-                             PasswordEncoder encoder,
-                             EmailService emailService) {
+            PasswordEncoder encoder,
+            EmailService emailService) {
         this.repo = repo;
         this.encoder = encoder;
         this.emailService = emailService;
@@ -38,15 +37,14 @@ public class MemberServiceImpl implements MemberService {
         m.setPhone(req.getPhone());
         m.setAddress(req.getAddress());
 
-        
         if ("admin".equalsIgnoreCase(req.getRole())) {
-            if (!isAdmin) throw new RuntimeException("Only admin can create admin");
+            if (!isAdmin)
+                throw new RuntimeException("Only admin can create admin");
             m.setRole("admin");
         } else {
             m.setRole("member");
         }
 
-        
         String rawPwd = PasswordUtil.generateRandomPassword();
         m.setHashedPwd(encoder.encode(rawPwd));
         m.setStatus("active");
@@ -58,19 +56,22 @@ public class MemberServiceImpl implements MemberService {
 
         Member saved = repo.save(m);
 
-        
-        emailService.sendPasswordEmail(saved.getEmail(), rawPwd);
+        try {
+            emailService.sendPasswordEmail(saved.getEmail(), rawPwd);
+        } catch (Exception e) {
+            // Log the error but don't fail member creation
+            System.err.println("Failed to send password email to " + saved.getEmail() + ": " + e.getMessage());
+        }
 
         return saved;
     }
 
     @Override
     public Member updateMember(Integer id, UpdateMemberRequest req,
-                               Integer requesterId, boolean isAdmin) {
+            Integer requesterId, boolean isAdmin) {
 
         Member m = repo.findById(id).orElseThrow();
 
-        
         if (!isAdmin && !id.equals(requesterId))
             throw new RuntimeException("Forbidden");
 
@@ -84,7 +85,6 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public void deleteMember(Integer id, Integer requesterId, boolean isAdmin) {
 
-        
         if (!isAdmin && !id.equals(requesterId))
             throw new RuntimeException("Forbidden");
 
@@ -104,12 +104,11 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public void changestatus(Integer Id){
+    public void changestatus(Integer Id) {
         Member m = repo.findById(Id).orElseThrow();
-        if(m.getStatus().equals("active")){
+        if (m.getStatus().equals("active")) {
             m.setStatus("inactive");
-        }
-        else{
+        } else {
             m.setStatus("active");
         }
         repo.save(m);
@@ -117,9 +116,8 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public Page<MemberResponse> getMembers(Integer id, String status, String name,
-                                           Integer requesterId, boolean isAdmin,
-                                           Integer page, Integer size
-                                           ) {
+            Integer requesterId, boolean isAdmin,
+            Integer page, Integer size) {
         String normalizedStatus = status == null ? null : status.trim().toLowerCase();
         String normalizedName = name == null ? null : name.trim().toLowerCase();
         Pageable pageable = buildPageable(page, size);
@@ -163,7 +161,6 @@ public class MemberServiceImpl implements MemberService {
     private Pageable buildPageable(Integer page, Integer size) {
         int safePage = page == null || page < 0 ? 0 : page;
         int safeSize = size == null || size <= 0 ? 10 : size;
-       
 
         return PageRequest.of(safePage, safeSize);
     }
@@ -199,7 +196,11 @@ public class MemberServiceImpl implements MemberService {
                 m.getRole(),
                 m.getStatus(),
                 m.getMembershipStart(),
-                m.getMembershipEnd()
-        );
+                m.getMembershipEnd());
+    }
+
+    @Override
+    public Integer getNextMemberId() {
+        return repo.findMaxId();
     }
 }

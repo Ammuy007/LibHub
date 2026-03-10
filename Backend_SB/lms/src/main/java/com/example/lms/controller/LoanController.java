@@ -10,7 +10,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-
 @RestController
 @RequestMapping("v1/loans")
 public class LoanController {
@@ -30,14 +29,16 @@ public class LoanController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public LoanResponse updateLoan(@PathVariable Integer id,
-                                   @RequestBody LoanUpdateRequest request) {
+            @RequestBody LoanUpdateRequest request) {
         return loanService.updateLoan(id, request);
     }
+
     @PutMapping("/{id}/return")
     @PreAuthorize("hasRole('ADMIN')")
     public LoanResponse returnBook(@PathVariable Integer id) {
         return loanService.returnBook(id);
     }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public void deleteLoan(@PathVariable Integer id) {
@@ -46,18 +47,17 @@ public class LoanController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
-    public Page<LoanResponse> getLoans(@RequestParam(required = false) Integer id,
-                                       @RequestParam(required = false, defaultValue = "false") Boolean overdue,
-                                       @RequestParam(defaultValue = "0") Integer page,
-                                       @RequestParam(defaultValue = "10") Integer size,
-                                       Authentication authentication) {
+    public Page<LoanResponse> getLoans(@RequestParam(name = "id", required = false) Integer id,
+            @RequestParam(name = "memberId", required = false) Integer memberId,
+            @RequestParam(name = "overdue", required = false, defaultValue = "false") Boolean overdue,
+            @RequestParam(name = "page", defaultValue = "0") Integer page,
+            @RequestParam(name = "size", defaultValue = "10") Integer size,
+            Authentication authentication) {
         Integer requesterMemberId = (Integer) authentication.getPrincipal();
         boolean isAdmin = authentication.getAuthorities()
                 .stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        return loanService.getLoans(id, overdue, requesterMemberId, isAdmin, page, size);
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return loanService.getLoans(id, memberId, overdue, requesterMemberId, isAdmin, page, size);
     }
 
-    
-    
 }

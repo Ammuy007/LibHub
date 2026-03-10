@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   BookCopy,
   CircleAlert,
@@ -13,29 +13,9 @@ import { MainLayout } from "../../components/ui/layout/MainLayout";
 import { Modal } from "../../components/modals/Register/Modal";
 import { Button } from "../../components/ui/Button/Button";
 import { DataTable, TableCell } from "../../components/ui/Table/Table";
-
-const bookInfoByTitle: Record<string, any> = {
-  "The Midnight Library": {
-    title: "The Midnight Library",
-    author: "Matt Haig",
-    isbn: "978-059355947-4",
-    publisher: "Viking",
-    year: "2020",
-    category: "Contemporary Fiction",
-    description: "Between life and death there is a library, and within that library, the shelves go on forever. Every book provides a chance to try another life you could have lived.",
-  },
-};
-
-const copies = [
-  { id: "CP-001", accessionNo: "LMS-9621", status: "Available", statusType: "ok", dueDate: "-", lastBorrowed: "2024-03-12", currentHolder: "Library Shelf" },
-  { id: "CP-002", accessionNo: "LMS-9622", status: "Issued", statusType: "issued", dueDate: "2024-05-20", lastBorrowed: "2024-05-06", currentHolder: "Sarah Jenkins" },
-  { id: "CP-003", accessionNo: "LMS-9623", status: "Issued", statusType: "issued", dueDate: "2024-04-29", lastBorrowed: "2024-04-08", currentHolder: "Michael Chen" },
-];
-
-const activities = [
-  { action: "Returned by Jonathan Reed", meta: "Copy CP-002 | Apr 17, 2024" },
-  { action: "Borrowed by Sarah Jenkins", meta: "Copy CP-002 | May 06, 2024" },
-];
+import { api } from "../../services/api";
+import type { BookResponse, CopyResponse, LoanResponse } from "../../services/api";
+import { formatDateISO, isOverdue } from "../../services/format";
 
 export const BookDetailsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -43,26 +23,103 @@ export const BookDetailsPage: React.FC = () => {
   const decodedTitle = decodeURIComponent(bookId);
 
   // States
-
+  const [book, setBook] = useState<BookResponse | null>(null);
+  const [copies, setCopies] = useState<CopyResponse[]>([]);
+  const [loans, setLoans] = useState<LoanResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isAddCopyModalOpen, setIsAddCopyModalOpen] = useState(false);
   const [copiesToAdd, setCopiesToAdd] = useState("1");
-  const [addedCopies, setAddedCopies] = useState(0);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  const book = bookInfoByTitle[decodedTitle] || bookInfoByTitle["The Midnight Library"];
+  useEffect(() => {
+    let isMounted = true;
+    const loadBookDetails = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const books = await api.getBooks({ title: decodedTitle });
+        if (!isMounted) return;
+        const found = books[0] ?? null;
+        setBook(found);
+        if (found?.book_id) {
+          try {
+            const [copiesResponse, loansPage] = await Promise.all([
+              api.getCopies({ bookId: found.book_id }),
+              api.getLoans({ page: 0, size: 500 }),
+            ]);
+            if (!isMounted) return;
+            setCopies(copiesResponse);
+            setLoans(loansPage.content.filter((loan) => loan.bookTitle === found.title));
+          } catch (err) {
+            if (!isMounted) return;
+            setCopies([]);
+            setLoans([]);
+          }
+        } else {
+          setCopies([]);
+          setLoans([]);
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error("Failed to load book details", err);
+        setError("Unable to load book details.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadBookDetails();
+    return () => {
+      isMounted = false;
+    };
+  }, [decodedTitle]);
+
+  const loanByCopyId = useMemo(() => {
+    return loans.reduce<Record<number, LoanResponse>>((acc, loan) => {
+      if (!loan.returnDate) {
+        acc[loan.copyId] = loan;
+      }
+      return acc;
+    }, {});
+  }, [loans]);
+
+  const mappedCopies = useMemo(() => {
+    return copies.map((copy) => {
+      const loan = loanByCopyId[copy.copyId];
+      const issued = !!loan;
+      const overdue = loan ? isOverdue(loan.dueDate, loan.returnDate) : false;
+      return {
+        id: `CP-${copy.copyId}`,
+        accessionNo: `LMS-${copy.copyId}`,
+        status: issued ? "Issued" : "Available",
+        statusType: overdue ? "overdue" : issued ? "issued" : "ok",
+        dueDate: issued ? formatDateISO(loan?.dueDate) : "-",
+        currentHolder: issued ? loan?.memberName ?? "-" : "Library Shelf",
+      };
+    });
+  }, [copies, loanByCopyId]);
 
   const statCounts = useMemo(() => ({
-    total: 12 + addedCopies,
-    available: 5 + addedCopies,
-    issued: 6,
-    overdue: 1,
-  }), [addedCopies]);
+    total: copies.length,
+    available: copies.filter((copy) => copy.status?.toLowerCase() === "available").length,
+    issued: copies.filter((copy) => copy.status?.toLowerCase() !== "available").length,
+    overdue: loans.filter((loan) => isOverdue(loan.dueDate, loan.returnDate)).length,
+  }), [copies, loans]);
 
-  const handleAddCopies = () => {
+  const handleAddCopies = async () => {
     const parsedValue = parseInt(copiesToAdd, 10);
     if (!isNaN(parsedValue) && parsedValue > 0) {
-      setAddedCopies(prev => prev + parsedValue);
-      setIsAddCopyModalOpen(false);
+      if (!book?.book_id) return;
+      try {
+        await api.createCopies(book.book_id, parsedValue);
+        const refreshed = await api.getCopies({ bookId: book.book_id });
+        setCopies(refreshed);
+        setIsAddCopyModalOpen(false);
+      } catch (err) {
+        console.error("Failed to add copies", err);
+        window.alert("Unable to add copies right now.");
+      }
     }
   };
 
@@ -97,17 +154,17 @@ export const BookDetailsPage: React.FC = () => {
             <div className="flex-1 space-y-4">
               <div className="space-y-1">
                 <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-600">
-                  {book.category}
+                  General
                 </span>
-                <h2 className="text-4xl font-black text-gray-900 tracking-tight">{book.title}</h2>
-                <p className="text-gray-500 font-medium italic">by {book.author}</p>
+                <h2 className="text-4xl font-black text-gray-900 tracking-tight">{book?.title ?? decodedTitle}</h2>
+                <p className="text-gray-500 font-medium italic">by {book?.author ?? "Unknown"}</p>
               </div>
-              <p className="text-sm text-gray-500 leading-relaxed max-w-3xl">{book.description}</p>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-3xl">{book?.description ?? "No description available."}</p>
 
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
-                <Meta label="ISBN-13" value={book.isbn} />
-                <Meta label="Publisher" value={book.publisher} />
-                <Meta label="Year" value={book.year} />
+                <Meta label="ISBN-13" value={book?.isbn ?? "-"} />
+                <Meta label="Publisher" value={book?.publisher ?? "-"} />
+                <Meta label="Year" value={book?.publish_year?.toString() ?? "-"} />
 
               </div>
             </div>
@@ -125,29 +182,49 @@ export const BookDetailsPage: React.FC = () => {
 
           {/* Inventory Table */}
           <DataTable headers={["Copy ID", "Accession", "Status", "Due Date", "Current Holder"]}>
-            {copies.map((copy) => (
-              <tr key={copy.id} className="group hover:bg-gray-50/50 transition-colors">
-                <TableCell className="font-mono text-xs text-blue-600 font-bold px-8">
-                  {copy.id}
-                </TableCell>
-                <TableCell center className="text-sm font-bold text-gray-700">
-                  {copy.accessionNo}
-                </TableCell>
-                <TableCell center>
-                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${copy.statusType === 'ok' ? 'bg-green-50 text-green-600' :
-                    copy.statusType === 'issued' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'
-                    }`}>
-                    {copy.status}
-                  </span>
-                </TableCell>
-                <TableCell center className="text-sm text-gray-500">
-                  {copy.dueDate}
-                </TableCell>
-                <TableCell center className="text-sm font-bold text-gray-700">
-                  {copy.currentHolder}
+            {isLoading ? (
+              <tr>
+                <TableCell colSpan={5} center>
+                  <div className="py-10 text-gray-400 italic">Loading copies...</div>
                 </TableCell>
               </tr>
-            ))}
+            ) : error ? (
+              <tr>
+                <TableCell colSpan={5} center>
+                  <div className="py-10 text-red-500 italic">{error}</div>
+                </TableCell>
+              </tr>
+            ) : mappedCopies.length === 0 ? (
+              <tr>
+                <TableCell colSpan={5} center>
+                  <div className="py-10 text-gray-400 italic">No copies found.</div>
+                </TableCell>
+              </tr>
+            ) : (
+              mappedCopies.map((copy) => (
+                <tr key={copy.id} className="group hover:bg-gray-50/50 transition-colors">
+                  <TableCell className="font-mono text-xs text-blue-600 font-bold px-8">
+                    {copy.id}
+                  </TableCell>
+                  <TableCell center className="text-sm font-bold text-gray-700">
+                    {copy.accessionNo}
+                  </TableCell>
+                  <TableCell center>
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${copy.statusType === 'ok' ? 'bg-green-50 text-green-600' :
+                      copy.statusType === 'issued' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'
+                      }`}>
+                      {copy.status}
+                    </span>
+                  </TableCell>
+                  <TableCell center className="text-sm text-gray-500">
+                    {copy.dueDate}
+                  </TableCell>
+                  <TableCell center className="text-sm font-bold text-gray-700">
+                    {copy.currentHolder}
+                  </TableCell>
+                </tr>
+              ))
+            )}
           </DataTable>
         </section>
       </div>
@@ -194,7 +271,7 @@ export const BookDetailsPage: React.FC = () => {
         }
       >
         <p className="text-sm text-gray-500 leading-relaxed px-1">
-          Are you sure you want to remove <span className="font-bold text-gray-900">{book.title}</span> from the library catalog?
+          Are you sure you want to remove <span className="font-bold text-gray-900">{book?.title ?? decodedTitle}</span> from the library catalog?
         </p>
       </Modal>
     </MainLayout>

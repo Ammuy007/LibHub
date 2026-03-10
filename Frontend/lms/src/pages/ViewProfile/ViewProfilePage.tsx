@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "../../components/ui/layout/MainLayout";
 import { Card } from "../../components/ui/Card/Card";
 import {
@@ -10,14 +10,59 @@ import {
     Users,
     Wallet
 } from "lucide-react";
+import { api } from "../../services/api";
+import type { FineResponse, MemberResponse, LoanResponse } from "../../services/api";
 
 export const ViewProfilePage: React.FC = () => {
-    // Mock data representing the Admin's impact
-    const adminStats = [
-        { label: "Checkouts Processed", value: "1,240", icon: <BookOpen className="text-blue-600" /> },
-        { label: "Members Registered", value: "856", icon: <Users className="text-emerald-600" /> },
-        { label: "Fines Collected", value: "Rs. 12,450", icon: <Wallet className="text-orange-600" /> },
-    ];
+    const [admin, setAdmin] = useState<MemberResponse | null>(null);
+    const [members, setMembers] = useState<MemberResponse[]>([]);
+    const [loans, setLoans] = useState<LoanResponse[]>([]);
+    const [fines, setFines] = useState<FineResponse[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadProfile = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const [membersPage, loansPage, finesPage] = await Promise.all([
+                    api.getMembers({ page: 0, size: 200 }),
+                    api.getLoans({ page: 0, size: 500 }),
+                    api.getFines({ page: 0, size: 500 }),
+                ]);
+                if (!isMounted) return;
+                setMembers(membersPage.content);
+                setLoans(loansPage.content);
+                setFines(finesPage.content);
+                const adminMember = membersPage.content.find((m) => m.role?.toLowerCase() === "admin") ?? null;
+                setAdmin(adminMember);
+            } catch (err) {
+                if (!isMounted) return;
+                console.error("Failed to load admin profile", err);
+                setError("Unable to load profile.");
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        loadProfile();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const adminStats = useMemo(() => {
+        const finesCollected = fines
+            .filter((fine) => fine.status?.toLowerCase() === "paid")
+            .reduce((sum, fine) => sum + (fine.amount ?? 0), 0);
+        return [
+            { label: "Checkouts Processed", value: isLoading || error ? "—" : String(loans.length), icon: <BookOpen className="text-blue-600" /> },
+            { label: "Members Registered", value: isLoading || error ? "—" : String(members.length), icon: <Users className="text-emerald-600" /> },
+            { label: "Fines Collected", value: isLoading || error ? "—" : `Rs. ${finesCollected.toFixed(2)}`, icon: <Wallet className="text-orange-600" /> },
+        ];
+    }, [fines, loans, members, isLoading, error]);
 
     return (
         <MainLayout>
@@ -45,7 +90,7 @@ export const ViewProfilePage: React.FC = () => {
                     {/* Primary Info */}
                     <div className="space-y-6 flex-1">
                         <div>
-                            <h2 className="text-4xl font-black text-gray-900 tracking-tight">Admin User</h2>
+                            <h2 className="text-4xl font-black text-gray-900 tracking-tight">{admin?.name ?? "Admin User"}</h2>
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100">
                                     System Administrator
@@ -64,7 +109,7 @@ export const ViewProfilePage: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Email Address</p>
-                                    <p className="text-sm font-bold text-gray-900">admin@libhub.com</p>
+                                    <p className="text-sm font-bold text-gray-900">{admin?.email ?? "-"}</p>
                                 </div>
                             </div>
 
@@ -74,7 +119,7 @@ export const ViewProfilePage: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Admin ID</p>
-                                    <p className="text-sm font-bold text-gray-900">ADM-2024-001</p>
+                                    <p className="text-sm font-bold text-gray-900">{admin?.id ? `ADM-${admin.id}` : "-"}</p>
                                 </div>
                             </div>
 
@@ -84,7 +129,7 @@ export const ViewProfilePage: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Joined Date</p>
-                                    <p className="text-sm font-bold text-gray-900">January 12, 2024</p>
+                                    <p className="text-sm font-bold text-gray-900">{admin?.membershipStart ?? "-"}</p>
                                 </div>
                             </div>
 

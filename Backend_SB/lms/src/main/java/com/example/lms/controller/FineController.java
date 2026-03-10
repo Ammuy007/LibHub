@@ -18,11 +18,13 @@ public class FineController {
     public FineController(FineService fineService) {
         this.fineService = fineService;
     }
+
     @PutMapping("/{id}/mark-paid")
     @PreAuthorize("hasRole('ADMIN')")
     public FineResponse markPaid(@PathVariable Integer id) {
         return fineService.markFinePaid(id);
     }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public FineResponse create(@RequestBody FineRequest request) {
@@ -32,7 +34,7 @@ public class FineController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public FineResponse update(@PathVariable Integer id,
-                               @RequestBody FineRequest request) {
+            @RequestBody FineRequest request) {
         return fineService.updateFine(id, request);
     }
 
@@ -44,12 +46,12 @@ public class FineController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
-    public Page<FineResponse> getFines(@RequestParam(required = false) Integer id,
-                                       @RequestParam(required = false) Integer memberId,
-                                       @RequestParam(required = false) String status,
-                                       @RequestParam(defaultValue = "0") Integer page,
-                                       @RequestParam(defaultValue = "10") Integer size,
-                                       Authentication authentication) {
+    public Page<FineResponse> getFines(@RequestParam(name = "id", required = false) Integer id,
+            @RequestParam(name = "memberId", required = false) Integer memberId,
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "page", defaultValue = "0") Integer page,
+            @RequestParam(name = "size", defaultValue = "10") Integer size,
+            Authentication authentication) {
         Integer requesterMemberId = (Integer) authentication.getPrincipal();
         boolean isAdmin = authentication.getAuthorities()
                 .stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));

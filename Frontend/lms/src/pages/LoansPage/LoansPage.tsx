@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   CircleDot,
@@ -12,120 +12,76 @@ import { MainLayout } from "../../components/ui/layout/MainLayout";
 import { Button } from "../../components/ui/Button/Button";
 import { DataTable, TableCell } from "../../components/ui/Table/Table";
 import { exportToCsv } from "../../utils/exportToCsv";
-
-
-const loanRecords = [
-  {
-    copyId: "CP-102-A",
-    title: "The Great Gatsby",
-    member: "Sarah Jenkins",
-    issuedOn: "2024-05-10",
-    dueDate: "2024-05-24",
-    status: "Overdue",
-    statusType: "overdue",
-  },
-  {
-    copyId: "CP-405-B",
-    title: "Foundation",
-    member: "Michael Chen",
-    issuedOn: "2024-05-15",
-    dueDate: "2024-05-29",
-    status: "Active",
-    statusType: "active",
-  },
-  {
-    copyId: "CP-001-C",
-    title: "Clean Code",
-    member: "Emily Rodriguez",
-    issuedOn: "2024-05-18",
-    dueDate: "2024-05-25",
-    status: "Active",
-    statusType: "active",
-  },
-  {
-    copyId: "CP-223-A",
-    title: "The Midnight Library",
-    member: "David Wilson",
-    issuedOn: "2024-05-23",
-    dueDate: "2024-06-03",
-    status: "Active",
-    statusType: "active",
-  },
-  {
-    copyId: "CP-112-D",
-    title: "Brave New World",
-    member: "Jessica Taylor",
-    issuedOn: "2024-05-22",
-    dueDate: "2024-06-05",
-    status: "Active",
-    statusType: "active",
-  },
-  {
-    copyId: "CP-078-C",
-    title: "Atomic Habits",
-    member: "Rohan Mehta",
-    issuedOn: "2024-05-19",
-    dueDate: "2024-06-02",
-    status: "Active",
-    statusType: "active",
-  },
-  {
-    copyId: "CP-320-F",
-    title: "Dune",
-    member: "Ananya Pramod",
-    issuedOn: "2024-05-17",
-    dueDate: "2024-05-31",
-    status: "Active",
-    statusType: "active",
-  },
-  {
-    copyId: "CP-450-H",
-    title: "The Alchemist",
-    member: "Liam Smith",
-    issuedOn: "2024-05-21",
-    dueDate: "2024-06-04",
-    status: "Active",
-    statusType: "active",
-  },
-  {
-    copyId: "CP-221-M",
-    title: "Sapiens",
-    member: "Nora Blake",
-    issuedOn: "2024-05-09",
-    dueDate: "2024-05-23",
-    status: "Overdue",
-    statusType: "overdue",
-  },
-  {
-    copyId: "CP-118-R",
-    title: "Clean Code",
-    member: "Vikram Rao",
-    issuedOn: "2024-05-11",
-    dueDate: "2024-05-25",
-    status: "Overdue",
-    statusType: "overdue",
-  },
-  {
-    copyId: "CP-332-T",
-    title: "1984",
-    member: "Priya Singh",
-    issuedOn: "2024-05-08",
-    dueDate: "2024-05-22",
-    status: "Overdue",
-    statusType: "overdue",
-  },
-];
-
-const recentActivities = [
-  { book: "The Hobbit", time: "5m ago" },
-  { book: "Atomic Habits", time: "12m ago" },
-  { book: "Sapiens", time: "25m ago" },
-];
+import { api } from "../../services/api";
+import type { LoanResponse } from "../../services/api";
+import { formatDateISO, formatRelativeTime, isOverdue } from "../../services/format";
 
 export const LoansPage: React.FC = () => {
   const [actionMode, setActionMode] = useState<"issue" | "return">("issue");
   const [recordTab, setRecordTab] = useState<"all" | "active" | "overdue">("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [pageSize] = useState(10);
+  const [loans, setLoans] = useState<LoanResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadLoans = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const loansPage = await api.getLoans({ page, size: pageSize, overdue: recordTab === "overdue" ? true : undefined });
+        if (!isMounted) return;
+        setLoans(loansPage.content);
+        setTotalPages(loansPage.totalPages);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error("Failed to load loans", err);
+        setError("Unable to load loans right now.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadLoans();
+    return () => {
+      isMounted = false;
+    };
+  }, [page, recordTab]);
+
+  const loanRecords = useMemo(() => {
+    return loans
+      .filter((loan) => !loan.returnDate)
+      .map((loan) => {
+        const overdue = isOverdue(loan.dueDate, loan.returnDate);
+        return {
+          copyId: `CP-${loan.copyId}`,
+          title: loan.bookTitle,
+          member: loan.memberName,
+          issuedOn: formatDateISO(loan.issueDate),
+          dueDate: formatDateISO(loan.dueDate),
+          status: overdue ? "Overdue" : "Active",
+          statusType: overdue ? "overdue" : "active",
+        };
+      });
+  }, [loans]);
+
+  const recentActivities = useMemo(() => {
+    return [...loans]
+      .sort((a, b) => {
+        const aTime = new Date(a.createdAt ?? a.issueDate).getTime();
+        const bTime = new Date(b.createdAt ?? b.issueDate).getTime();
+        return bTime - aTime;
+      })
+      .slice(0, 3)
+      .map((loan) => ({
+        book: loan.bookTitle,
+        time: formatRelativeTime(loan.createdAt ?? loan.issueDate),
+      }));
+  }, [loans]);
 
   const filteredLoans = useMemo(() => {
     return loanRecords.filter((loan) => {
@@ -141,7 +97,7 @@ export const LoansPage: React.FC = () => {
 
       return matchesTab && matchesSearch;
     });
-  }, [recordTab, search]);
+  }, [recordTab, search, loanRecords]);
 
   return (
     <MainLayout>
@@ -155,10 +111,10 @@ export const LoansPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <TopStat title="TOTAL ACTIVE" value="124" icon={<CheckCircle2 size={14} />} />
+            <TopStat title="TOTAL ACTIVE" value={isLoading ? "—" : String(loanRecords.length)} icon={<CheckCircle2 size={14} />} />
             <TopStat
               title="OVERDUE"
-              value="12"
+              value={isLoading ? "—" : String(loanRecords.filter((loan) => loan.statusType === "overdue").length)}
               icon={<Clock3 size={14} />}
               danger
             />
@@ -253,15 +209,21 @@ export const LoansPage: React.FC = () => {
                 Recent Activities
               </h3>
               <div className="mt-3 divide-y divide-gray-100">
-                {recentActivities.map((activity) => (
-                  <div
-                    key={`${activity.book}-${activity.time}`}
-                    className="py-2 flex items-center justify-between text-sm"
-                  >
-                    <span className="text-gray-800">{activity.book}</span>
-                    <span className="text-xs text-gray-500">{activity.time}</span>
-                  </div>
-                ))}
+                {isLoading ? (
+                  <div className="py-2 text-sm text-gray-400 italic">Loading activity...</div>
+                ) : error ? (
+                  <div className="py-2 text-sm text-red-500 italic">{error}</div>
+                ) : (
+                  recentActivities.map((activity) => (
+                    <div
+                      key={`${activity.book}-${activity.time}`}
+                      className="py-2 flex items-center justify-between text-sm"
+                    >
+                      <span className="text-gray-800">{activity.book}</span>
+                      <span className="text-xs text-gray-500">{activity.time}</span>
+                    </div>
+                  ))
+                )}
               </div>
               <button className="mt-3 text-xs text-blue-600 hover:underline">
                 View full logs
@@ -314,7 +276,7 @@ export const LoansPage: React.FC = () => {
                       ? "text-blue-600 border-blue-500"
                       : "text-gray-400 border-transparent"
                       }`}
-                    onClick={() => setRecordTab("all")}
+                    onClick={() => { setRecordTab("all"); setPage(0); }}
                   >
                     All Loans
                   </button>
@@ -323,7 +285,7 @@ export const LoansPage: React.FC = () => {
                       ? "text-blue-600 border-blue-500"
                       : "text-gray-400 border-transparent"
                       }`}
-                    onClick={() => setRecordTab("active")}
+                    onClick={() => { setRecordTab("active"); setPage(0); }}
                   >
                     Active Loans
                   </button>
@@ -332,7 +294,7 @@ export const LoansPage: React.FC = () => {
                       ? "text-blue-600 border-blue-500"
                       : "text-gray-400 border-transparent"
                       }`}
-                    onClick={() => setRecordTab("overdue")}
+                    onClick={() => { setRecordTab("overdue"); setPage(0); }}
                   >
                     Overdue Loans
                   </button>
@@ -340,46 +302,68 @@ export const LoansPage: React.FC = () => {
               </div>
 
               <DataTable headers={["Book / Copy ID", "Member", "Issued", "Due Date", "Status"]}>
-                {filteredLoans.map((loan) => (
-                  <tr key={`${loan.copyId}-${loan.member}`} className="hover:bg-gray-50/50 transition-colors">
-                    <TableCell>
-                      <p className="font-bold text-gray-900">{loan.title}</p>
-                      <p className="text-xs font-mono text-gray-400 mt-0.5">{loan.copyId}</p>
-                    </TableCell>
-                    <TableCell center>
-                      <div className="inline-flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 inline-flex items-center justify-center">
-                          <UserRound size={12} />
-                        </span>
-                        <span className="text-sm text-gray-800">{loan.member}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell center>
-                      <span className="text-gray-700">{loan.issuedOn}</span>
-                    </TableCell>
-                    <TableCell center>
-                      <span className={loan.statusType === "overdue" ? "text-red-600 font-black" : "text-gray-700"}>
-                        {loan.dueDate}
-                      </span>
-                    </TableCell>
-                    <TableCell center>
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black ${loan.statusType === "overdue" ? "bg-red-50 text-red-700" : "bg-gray-100 text-gray-700"
-                        }`}>
-                        {loan.statusType === "overdue" ? <RefreshCcw size={11} /> : <Clock3 size={11} />}
-                        {loan.status}
-                      </span>
+                {isLoading ? (
+                  <tr>
+                    <TableCell colSpan={5} center>
+                      <div className="py-10 text-gray-400 italic">Loading loans...</div>
                     </TableCell>
                   </tr>
-                ))}
+                ) : error ? (
+                  <tr>
+                    <TableCell colSpan={5} center>
+                      <div className="py-10 text-red-500 italic">{error}</div>
+                    </TableCell>
+                  </tr>
+                ) : (
+                  filteredLoans.map((loan) => (
+                    <tr key={`${loan.copyId}-${loan.member}`} className="hover:bg-gray-50/50 transition-colors">
+                      <TableCell>
+                        <p className="font-bold text-gray-900">{loan.title}</p>
+                        <p className="text-xs font-mono text-gray-400 mt-0.5">{loan.copyId}</p>
+                      </TableCell>
+                      <TableCell center>
+                        <div className="inline-flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 inline-flex items-center justify-center">
+                            <UserRound size={12} />
+                          </span>
+                          <span className="text-sm text-gray-800">{loan.member}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell center>
+                        <span className="text-gray-700">{loan.issuedOn}</span>
+                      </TableCell>
+                      <TableCell center>
+                        <span className={loan.statusType === "overdue" ? "text-red-600 font-black" : "text-gray-700"}>
+                          {loan.dueDate}
+                        </span>
+                      </TableCell>
+                      <TableCell center>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black ${loan.statusType === "overdue" ? "bg-red-50 text-red-700" : "bg-gray-100 text-gray-700"
+                          }`}>
+                          {loan.statusType === "overdue" ? <RefreshCcw size={11} /> : <Clock3 size={11} />}
+                          {loan.status}
+                        </span>
+                      </TableCell>
+                    </tr>
+                  ))
+                )}
               </DataTable>
 
               <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                <p>Showing {filteredLoans.length} of 124 records</p>
+                <p>Page {page + 1} of {totalPages}</p>
                 <div className="flex items-center gap-2">
-                  <button className="h-8 px-3 rounded border border-gray-200 bg-white hover:bg-gray-50">
+                  <button
+                    disabled={page === 0}
+                    onClick={() => setPage(page - 1)}
+                    className="h-8 px-3 rounded border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     Previous
                   </button>
-                  <button className="h-8 px-3 rounded border border-gray-200 bg-white hover:bg-gray-50 font-semibold text-gray-700">
+                  <button
+                    disabled={page >= totalPages - 1}
+                    onClick={() => setPage(page + 1)}
+                    className="h-8 px-3 rounded border border-gray-200 bg-white hover:bg-gray-50 font-semibold text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     Next
                   </button>
                 </div>

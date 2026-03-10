@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   CircleAlert,
@@ -21,6 +21,9 @@ import { SearchBar } from "../../components/ui/SearchBar/SearchBar";
 
 // Modals
 import { EditMemberModal } from "../../components/modals/EditMember/EditMemberModal";
+import { api } from "../../services/api";
+import type { BookResponse, FineResponse, LoanResponse, MemberResponse } from "../../services/api";
+import { formatDateISO, formatMemberId, isOverdue, parseMemberId } from "../../services/format";
 
 // --- Types ---
 type TabType = "active" | "history" | "fines";
@@ -46,36 +49,10 @@ interface FineRecord {
   status: string;
 }
 
-// --- Static Data ---
-const membersById: Record<string, { name: string; email: string; phone: string; address: string }> = {
-  "MEM-2024-001": {
-    name: "Alexander Thorne",
-    email: "a.thorne@example.com",
-    phone: "+1 (555) 098-1234",
-    address: "451 Library Ave, Booktown, BK 101",
-  }
-};
-
-const activeLoans: LoanRecord[] = [
-  { id: "L-1024", title: "The Great Gatsby", isbn: "978-0743273565", issuedOn: "2024-05-01", dueDate: "2024-05-15", status: "Due Soon", statusType: "due" },
-  { id: "L-1025", title: "Principles of Physics", isbn: "978-1118230725", issuedOn: "2024-04-20", dueDate: "2024-05-04", status: "Overdue", statusType: "overdue" },
-  { id: "L-1028", title: "Modern Operating Systems", isbn: "978-0133591620", issuedOn: "2024-05-05", dueDate: "2024-05-19", status: "Due Soon", statusType: "due" },
-];
-
-const loanHistory: LoanRecord[] = [
-  ...activeLoans,
-  { id: "L-0912", title: "The Catcher in the Rye", isbn: "978-0316769488", issuedOn: "2024-01-10", dueDate: "2024-01-24", returnDate: "2024-01-22", status: "Returned", statusType: "returned" },
-  { id: "L-0855", title: "Clean Code", isbn: "978-0132350884", issuedOn: "2023-12-05", dueDate: "2023-12-19", returnDate: "2023-12-20", status: "Returned Late", statusType: "returned" },
-];
-
-const finesData: FineRecord[] = [
-  { id: "F-501", title: "Principles of Physics", copyId: "C-202", issueDate: "2024-04-20", dueDate: "2024-05-04", amount: "250.00", status: "Unpaid" },
-  { id: "F-488", title: "Clean Code", copyId: "C-105", issueDate: "2023-12-05", dueDate: "2023-12-19", amount: "100.00", status: "Unpaid" },
-];
-
 // --- Main Component ---
 export const MemberProfilePage: React.FC = () => {
   const { memberId = "MEM-2024-001" } = useParams();
+  const parsedMemberId = parseMemberId(memberId);
 
   // States
   const [activeTab, setActiveTab] = useState<TabType>("active");
@@ -83,13 +60,114 @@ export const MemberProfilePage: React.FC = () => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [member, setMember] = useState<MemberResponse | null>(null);
+  const [loans, setLoans] = useState<LoanResponse[]>([]);
+  const [fines, setFines] = useState<FineResponse[]>([]);
+  const [booksByTitle, setBooksByTitle] = useState<Record<string, BookResponse>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const member = membersById[memberId] || membersById["MEM-2024-001"];
+  const loadProfile = React.useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [memberPage, loansPage, books, finePage] = await Promise.all([
+        parsedMemberId ? api.getMembers({ id: parsedMemberId, page: 0, size: 1 }) : api.getMembers({ page: 0, size: 1 }),
+        api.getLoans({ memberId: parsedMemberId ?? undefined, page: 0, size: 500 }),
+        api.getBooks({ page: 0, size: 2000 }),
+        api.getFines({ memberId: parsedMemberId ?? undefined, page: 0, size: 500 }),
+      ]);
 
-  const handleConfirmToggle = () => {
-    setIsActive((prev) => !prev);
-    setIsConfirmModalOpen(false);
+      const memberData = memberPage.content[0] ?? null;
+      setMember(memberData);
+      setIsActive((memberData?.status ?? "active").toLowerCase() === "active");
+
+      const byTitle = books.reduce<Record<string, BookResponse>>((acc, book) => {
+        acc[book.title] = book;
+        return acc;
+      }, {});
+      setBooksByTitle(byTitle);
+
+      setLoans(loansPage.content);
+      setFines(finePage.content);
+    } catch (err: any) {
+      console.error("Failed to load member profile", err);
+      setError("Unable to load member details.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [parsedMemberId]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const handleConfirmToggle = async () => {
+    if (!member) return;
+    try {
+      await api.toggleMemberStatus(member.id);
+      loadProfile();
+    } catch (err) {
+      console.error("Failed to toggle member status", err);
+      window.alert("Unable to change member status right now.");
+    } finally {
+      setIsConfirmModalOpen(false);
+    }
   };
+
+  const activeLoans = useMemo<LoanRecord[]>(() => {
+    return loans
+      .filter((loan) => !loan.returnDate)
+      .map((loan) => {
+        const overdue = isOverdue(loan.dueDate, loan.returnDate);
+        return {
+          id: `L-${loan.loanId}`,
+          title: loan.bookTitle,
+          isbn: booksByTitle[loan.bookTitle]?.isbn ?? "-",
+          issuedOn: formatDateISO(loan.issueDate),
+          dueDate: formatDateISO(loan.dueDate),
+          status: overdue ? "Overdue" : "Due Soon",
+          statusType: overdue ? "overdue" : "due",
+        };
+      });
+  }, [loans, booksByTitle]);
+
+  const loanHistory = useMemo<LoanRecord[]>(() => {
+    return loans.map((loan) => {
+      const returned = !!loan.returnDate;
+      const overdue = isOverdue(loan.dueDate, loan.returnDate);
+      const isLate = returned && loan.returnDate && new Date(loan.returnDate) > new Date(loan.dueDate);
+      return {
+        id: `L-${loan.loanId}`,
+        title: loan.bookTitle,
+        isbn: booksByTitle[loan.bookTitle]?.isbn ?? "-",
+        issuedOn: formatDateISO(loan.issueDate),
+        dueDate: formatDateISO(loan.dueDate),
+        returnDate: loan.returnDate ? formatDateISO(loan.returnDate) : undefined,
+        status: returned ? (isLate ? "Returned Late" : "Returned") : overdue ? "Overdue" : "Due Soon",
+        statusType: returned ? "returned" : overdue ? "overdue" : "due",
+      };
+    });
+  }, [loans, booksByTitle]);
+
+  const finesData = useMemo<FineRecord[]>(() => {
+    const loanById = loans.reduce<Record<number, LoanResponse>>((acc, loan) => {
+      acc[loan.loanId] = loan;
+      return acc;
+    }, {});
+    return fines.map((fine) => {
+      const loan = loanById[fine.loanId];
+      return {
+        id: `F-${fine.fineId}`,
+        title: loan?.bookTitle ?? "-",
+        copyId: loan?.copyId ? `C-${loan.copyId}` : "-",
+        issueDate: loan?.issueDate ? formatDateISO(loan.issueDate) : "-",
+        dueDate: loan?.dueDate ? formatDateISO(loan.dueDate) : "-",
+        amount: fine.amount?.toFixed(2) ?? "0.00",
+        status: fine.status?.toLowerCase() === "paid" ? "Paid" : "Unpaid",
+      };
+    });
+  }, [fines, loans]);
 
   const filteredActiveLoans = useMemo(() => {
     const q = search.toLowerCase();
@@ -98,7 +176,7 @@ export const MemberProfilePage: React.FC = () => {
       l.id.toLowerCase().includes(q) ||
       l.isbn.toLowerCase().includes(q)
     );
-  }, [search]);
+  }, [search, activeLoans]);
 
   const filteredLoanHistory = useMemo(() => {
     const q = search.toLowerCase();
@@ -107,7 +185,7 @@ export const MemberProfilePage: React.FC = () => {
       l.id.toLowerCase().includes(q) ||
       l.isbn.toLowerCase().includes(q)
     );
-  }, [search]);
+  }, [search, loanHistory]);
 
   const filteredFines = useMemo(() => {
     const q = search.toLowerCase();
@@ -116,7 +194,14 @@ export const MemberProfilePage: React.FC = () => {
       f.id.toLowerCase().includes(q) ||
       f.copyId.toLowerCase().includes(q)
     );
-  }, [search]);
+  }, [search, finesData]);
+
+  const memberView = {
+    name: member?.name ?? "Member",
+    email: member?.email ?? "-",
+    phone: member?.phone ?? "-",
+    address: member?.address ?? "-",
+  };
 
   return (
     <MainLayout>
@@ -148,7 +233,7 @@ export const MemberProfilePage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">Confirm {isActive ? "Deactivation" : "Activation"}</h3>
-                  <p className="text-sm text-gray-500 mt-2">Are you sure you want to {isActive ? "deactivate" : "activate"} <strong>{member.name}</strong>?</p>
+                  <p className="text-sm text-gray-500 mt-2">Are you sure you want to {isActive ? "deactivate" : "activate"} <strong>{memberView.name}</strong>?</p>
                 </div>
                 <div className="flex gap-3 w-full pt-2">
                   <button className="flex-1 px-4 py-2.5 bg-gray-100 rounded-xl font-bold" onClick={() => setIsConfirmModalOpen(false)}>Cancel</button>
@@ -165,27 +250,31 @@ export const MemberProfilePage: React.FC = () => {
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-semibold text-gray-900">{member.name}</h2>
+                  <h2 className="text-2xl font-semibold text-gray-900">{memberView.name}</h2>
                   <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                     {isActive ? "Active Member" : "Deactivated"}
                   </span>
                 </div>
-                <p className="text-sm text-gray-500">Member ID: #{memberId}</p>
+                <p className="text-sm text-gray-500">Member ID: #{member?.id ? formatMemberId(member.id) : memberId}</p>
               </div>
               <Button onClick={() => setIsEditModalOpen(true)}>Edit Profile</Button>
             </div>
             <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <InfoItem icon={<Mail size={14} />} label="Email Address" value={member.email} />
-              <InfoItem icon={<Phone size={14} />} label="Phone Number" value={member.phone} />
-              <InfoItem icon={<MapPin size={14} />} label="Address" value={member.address} />
+              <InfoItem icon={<Mail size={14} />} label="Email Address" value={memberView.email} />
+              <InfoItem icon={<Phone size={14} />} label="Phone Number" value={memberView.phone ?? "-"} />
+              <InfoItem icon={<MapPin size={14} />} label="Address" value={memberView.address ?? "-"} />
             </div>
           </div>
 
           {/* Stats Bar */}
           <div className="grid grid-cols-2 lg:grid-cols-3 border-b border-gray-100">
-            <StatItem label="Join Date" value="Jan 12, 2024" />
-            <StatItem label="Total Loans" value="48 Books" />
-            <StatItem label="Active Fines" value="₹ 350.00" valueClass="text-red-600" />
+            <StatItem label="Join Date" value={member?.membershipStart ? formatDateISO(member.membershipStart) : "-"} />
+            <StatItem label="Total Loans" value={`${loans.length} Books`} />
+            <StatItem
+              label="Active Fines"
+              value={`₹ ${finesData.filter((f) => f.status === "Unpaid").reduce((sum, f) => sum + Number(f.amount || 0), 0).toFixed(2)}`}
+              valueClass="text-red-600"
+            />
           </div>
 
           {/* Tabs and Search */}
@@ -193,7 +282,7 @@ export const MemberProfilePage: React.FC = () => {
             <div className="flex flex-wrap items-center gap-6 text-sm">
               <TabItem label="Active Loans" active={activeTab === "active"} onClick={() => setActiveTab("active")} />
               <TabItem label="Loan History" active={activeTab === "history"} onClick={() => setActiveTab("history")} />
-              <TabItem label="Fines & Payments" badge="2" active={activeTab === "fines"} onClick={() => setActiveTab("fines")} />
+              <TabItem label="Fines & Payments" badge={String(finesData.filter((f) => f.status === "Unpaid").length)} active={activeTab === "fines"} onClick={() => setActiveTab("fines")} />
             </div>
             <div className="relative w-full lg:w-72">
               <SearchBar placeholder="Search books..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -209,16 +298,30 @@ export const MemberProfilePage: React.FC = () => {
                   <p className="text-sm text-gray-500">Books currently held by the member.</p>
                 </div>
                 <DataTable headers={["ID", "Book Title", "ISBN", "Issued On", "Due Date", "Status"]}>
-                  {filteredActiveLoans.map((loan) => (
-                    <tr key={loan.id} className="hover:bg-gray-50/50">
-                      <TableCell><span className="text-xs font-mono text-gray-400">{loan.id}</span></TableCell>
-                      <TableCell><span className="font-bold text-gray-900">{loan.title}</span></TableCell>
-                      <TableCell center><span className="text-xs font-mono text-gray-400">{loan.isbn}</span></TableCell>
-                      <TableCell center>{loan.issuedOn}</TableCell>
-                      <TableCell center>{loan.dueDate}</TableCell>
-                      <TableCell center><StatusBadge type={loan.statusType} label={loan.status} /></TableCell>
+                  {isLoading ? (
+                    <tr>
+                      <TableCell colSpan={6} center>
+                        <div className="py-10 text-gray-400 italic">Loading loans...</div>
+                      </TableCell>
                     </tr>
-                  ))}
+                  ) : error ? (
+                    <tr>
+                      <TableCell colSpan={6} center>
+                        <div className="py-10 text-red-500 italic">{error}</div>
+                      </TableCell>
+                    </tr>
+                  ) : (
+                    filteredActiveLoans.map((loan) => (
+                      <tr key={loan.id} className="hover:bg-gray-50/50">
+                        <TableCell><span className="text-xs font-mono text-gray-400">{loan.id}</span></TableCell>
+                        <TableCell><span className="font-bold text-gray-900">{loan.title}</span></TableCell>
+                        <TableCell center><span className="text-xs font-mono text-gray-400">{loan.isbn}</span></TableCell>
+                        <TableCell center>{loan.issuedOn}</TableCell>
+                        <TableCell center>{loan.dueDate}</TableCell>
+                        <TableCell center><StatusBadge type={loan.statusType} label={loan.status} /></TableCell>
+                      </tr>
+                    ))
+                  )}
                 </DataTable>
               </>
             )}
@@ -230,17 +333,31 @@ export const MemberProfilePage: React.FC = () => {
                   <p className="text-sm text-gray-500">Historical record of all issued books.</p>
                 </div>
                 <DataTable headers={["ID", "Book Title", "ISBN", "Issued On", "Due Date", "Returned On", "Status"]}>
-                  {filteredLoanHistory.map((loan) => (
-                    <tr key={loan.id} className="hover:bg-gray-50/50">
-                      <TableCell><span className="text-xs font-mono text-gray-400">{loan.id}</span></TableCell>
-                      <TableCell><span className="font-bold text-gray-900">{loan.title}</span></TableCell>
-                      <TableCell center><span className="text-xs font-mono text-gray-400">{loan.isbn}</span></TableCell>
-                      <TableCell center>{loan.issuedOn}</TableCell>
-                      <TableCell center>{loan.dueDate}</TableCell>
-                      <TableCell center>{loan.returnDate || "N/A"}</TableCell>
-                      <TableCell center><StatusBadge type={loan.statusType} label={loan.status} /></TableCell>
+                  {isLoading ? (
+                    <tr>
+                      <TableCell colSpan={7} center>
+                        <div className="py-10 text-gray-400 italic">Loading history...</div>
+                      </TableCell>
                     </tr>
-                  ))}
+                  ) : error ? (
+                    <tr>
+                      <TableCell colSpan={7} center>
+                        <div className="py-10 text-red-500 italic">{error}</div>
+                      </TableCell>
+                    </tr>
+                  ) : (
+                    filteredLoanHistory.map((loan) => (
+                      <tr key={loan.id} className="hover:bg-gray-50/50">
+                        <TableCell><span className="text-xs font-mono text-gray-400">{loan.id}</span></TableCell>
+                        <TableCell><span className="font-bold text-gray-900">{loan.title}</span></TableCell>
+                        <TableCell center><span className="text-xs font-mono text-gray-400">{loan.isbn}</span></TableCell>
+                        <TableCell center>{loan.issuedOn}</TableCell>
+                        <TableCell center>{loan.dueDate}</TableCell>
+                        <TableCell center>{loan.returnDate || "N/A"}</TableCell>
+                        <TableCell center><StatusBadge type={loan.statusType} label={loan.status} /></TableCell>
+                      </tr>
+                    ))
+                  )}
                 </DataTable>
               </>
             )}
@@ -252,25 +369,39 @@ export const MemberProfilePage: React.FC = () => {
                   <p className="text-sm text-gray-500">Outstanding charges for overdue or damaged items.</p>
                 </div>
                 <DataTable headers={["Fine ID", "Book Title / Copy", "Issue Date", "Due Date", "Amount", "Status"]}>
-                  {filteredFines.map((fine) => (
-                    <tr key={fine.id} className="hover:bg-gray-50/50">
-                      <TableCell><span className="text-xs font-mono text-gray-400">{fine.id}</span></TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-gray-900">{fine.title}</span>
-                          <span className="text-[10px] text-gray-400 uppercase">Copy: {fine.copyId}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell center>{fine.issueDate}</TableCell>
-                      <TableCell center>{fine.dueDate}</TableCell>
-                      <TableCell center><span>₹ {fine.amount}</span></TableCell>
-                      <TableCell center>
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-black bg-red-50 text-red-600">
-                          <ReceiptIndianRupee size={12} /> {fine.status}
-                        </span>
+                  {isLoading ? (
+                    <tr>
+                      <TableCell colSpan={6} center>
+                        <div className="py-10 text-gray-400 italic">Loading fines...</div>
                       </TableCell>
                     </tr>
-                  ))}
+                  ) : error ? (
+                    <tr>
+                      <TableCell colSpan={6} center>
+                        <div className="py-10 text-red-500 italic">{error}</div>
+                      </TableCell>
+                    </tr>
+                  ) : (
+                    filteredFines.map((fine) => (
+                      <tr key={fine.id} className="hover:bg-gray-50/50">
+                        <TableCell><span className="text-xs font-mono text-gray-400">{fine.id}</span></TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-gray-900">{fine.title}</span>
+                            <span className="text-[10px] text-gray-400 uppercase">Copy: {fine.copyId}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell center>{fine.issueDate}</TableCell>
+                        <TableCell center>{fine.dueDate}</TableCell>
+                        <TableCell center><span>₹ {fine.amount}</span></TableCell>
+                        <TableCell center>
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-black bg-red-50 text-red-600">
+                            <ReceiptIndianRupee size={12} /> {fine.status}
+                          </span>
+                        </TableCell>
+                      </tr>
+                    ))
+                  )}
                 </DataTable>
               </>
             )}
@@ -278,12 +409,27 @@ export const MemberProfilePage: React.FC = () => {
         </section>
       </div>
 
-      <EditMemberModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        initialData={member}
-        onSave={(updated) => console.log(updated)}
-      />
+      {member && (
+        <EditMemberModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          initialData={{
+            name: member.name,
+            email: member.email,
+            phone: member.phone || "",
+            address: member.address || "",
+          }}
+          onSave={async (updated) => {
+            try {
+              await api.updateMember(member.id, updated);
+              loadProfile();
+            } catch (err) {
+              console.error("Failed to update member profile", err);
+              window.alert("Unable to update profile.");
+            }
+          }}
+        />
+      )}
     </MainLayout>
   );
 };
