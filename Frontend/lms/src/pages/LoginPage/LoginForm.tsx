@@ -23,12 +23,7 @@ export const LoginForm: React.FC = () => {
     }
     setIsSubmitting(true);
     try {
-      const response = await api.login(email, password);
-      try {
-        localStorage.setItem("authToken", response.token);
-      } catch {
-        // Ignore storage failures (private mode)
-      }
+      await api.login(email, password);
 
       // Determine role from the JWT via /auth/me (single clean call)
       let destination = "/user/dashboard";

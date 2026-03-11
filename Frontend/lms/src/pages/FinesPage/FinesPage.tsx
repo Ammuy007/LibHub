@@ -9,6 +9,7 @@ import { exportToCsv } from "../../utils/exportToCsv";
 import { api } from "../../services/api";
 import type { LoanResponse } from "../../services/api";
 import { formatDateISO } from "../../services/format";
+import { useDebounce } from "../../hooks/useDebounce";
 
 type FineStatus = "Unpaid" | "Paid";
 
@@ -40,11 +41,17 @@ export const FinesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [refreshCounter, setRefreshCounter] = useState(0);
 
-  const [manualFineForm, setManualFineForm] = useState({ copyId: "", amount: "", reason: "Overdue Return", comments: "" });
+  const [manualFineForm, setManualFineForm] = useState({
+    copyId: "",
+    amount: "",
+    reason: "Overdue Return",
+    comments: "",
+  });
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingCountTotal, setPendingCountTotal] = useState(0);
   const [unpaidTotalAmount, setUnpaidTotalAmount] = useState(0);
+  const debouncedSearch = useDebounce(search);
 
   const mapFineRecords = (
     fineList: any[],
@@ -77,7 +84,7 @@ export const FinesPage: React.FC = () => {
       return {
         id: `F-${fine.fineId}`,
         member: fine.memberName ?? "-",
-        memberId: `M-${fine.memberId}`,
+        memberId: `MEM-${fine.memberId}`,
         book: loan?.bookTitle ?? "-",
         loanId: `L-${fine.loanId}`,
         dueDate: loan?.dueDate ? formatDateISO(loan.dueDate) : "-",
@@ -129,11 +136,19 @@ export const FinesPage: React.FC = () => {
       await api.createFine({
         copyId: copyIdNum,
         amount: amountNum,
-        reason: manualFineForm.reason === "Other" ? manualFineForm.comments.trim() : manualFineForm.reason,
+        reason:
+          manualFineForm.reason === "Other"
+            ? manualFineForm.comments.trim()
+            : manualFineForm.reason,
       });
       setIsManualFineOpen(false);
-      setManualFineForm({ copyId: "", amount: "", reason: "Overdue Return", comments: "" });
-      setRefreshCounter(c => c + 1);
+      setManualFineForm({
+        copyId: "",
+        amount: "",
+        reason: "Overdue Return",
+        comments: "",
+      });
+      setRefreshCounter((c) => c + 1);
     } catch (err: any) {
       setFormError(err.message || "Failed to issue fine");
     } finally {
@@ -155,7 +170,9 @@ export const FinesPage: React.FC = () => {
         ]);
         if (!isMounted) return;
         setTotalPages(finesPage.totalPages);
-        const loansById = loansPage.content.reduce<Record<number, LoanResponse>>((acc, loan) => {
+        const loansById = loansPage.content.reduce<
+          Record<number, LoanResponse>
+        >((acc, loan) => {
           acc[loan.loanId] = loan;
           return acc;
         }, {});
@@ -202,15 +219,15 @@ export const FinesPage: React.FC = () => {
   const filteredFines = useMemo(() => {
     return fines.filter((fine) => {
       const matchesSearch =
-        !search ||
-        fine.member.toLowerCase().includes(search.toLowerCase()) ||
-        fine.memberId.toLowerCase().includes(search.toLowerCase()) ||
-        fine.book.toLowerCase().includes(search.toLowerCase()) ||
-        fine.id.toLowerCase().includes(search.toLowerCase());
+        !debouncedSearch ||
+        fine.member.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        fine.memberId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        fine.book.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        fine.id.toLowerCase().includes(debouncedSearch.toLowerCase());
 
       return matchesSearch;
     });
-  }, [fines, search]);
+  }, [fines, debouncedSearch]);
 
   const selectedFine = selectedFineId
     ? fines.find((fine) => fine.id === selectedFineId) || null
@@ -262,10 +279,13 @@ export const FinesPage: React.FC = () => {
         loanPage += 1;
       }
 
-      const loansById = allLoans.reduce<Record<number, LoanResponse>>((acc, loan) => {
-        acc[loan.loanId] = loan;
-        return acc;
-      }, {});
+      const loansById = allLoans.reduce<Record<number, LoanResponse>>(
+        (acc, loan) => {
+          acc[loan.loanId] = loan;
+          return acc;
+        },
+        {},
+      );
 
       const mapped = mapFineRecords(allFines, loansById).filter((fine) => {
         const q = search.toLowerCase().trim();
@@ -280,12 +300,31 @@ export const FinesPage: React.FC = () => {
 
       exportToCsv(
         `fines_${tab}`,
-        ["ID", "Member", "Member ID", "Book", "Loan ID", "Due Date", "Returned Date", "Overdue Days", "Rate/Day", "Amount", "Status"],
+        [
+          "ID",
+          "Member",
+          "Member ID",
+          "Book",
+          "Loan ID",
+          "Due Date",
+          "Returned Date",
+          "Overdue Days",
+          "Rate/Day",
+          "Amount",
+          "Status",
+        ],
         mapped.map((f) => [
-          f.id, f.member, f.memberId, f.book, f.loanId,
-          f.dueDate, f.returnedDate,
-          String(f.overdueDays), String(f.ratePerDay),
-          String(f.amount), f.status,
+          f.id,
+          f.member,
+          f.memberId,
+          f.book,
+          f.loanId,
+          f.dueDate,
+          f.returnedDate,
+          String(f.overdueDays),
+          String(f.ratePerDay),
+          String(f.amount),
+          f.status,
         ]),
       );
     } catch (err) {
@@ -311,35 +350,34 @@ export const FinesPage: React.FC = () => {
             </div>
             {/* {add gap between export and } */}
             <div className="flex gap-3">
-
-              <Button
-                variant="outline"
-                onClick={handleExportFines}
-              >
+              <Button variant="outline" onClick={handleExportFines}>
                 <Download size={13} />
                 Export Data
               </Button>
               <Button
                 className="whitespace-nowrap"
-                  onClick={() => {
-                    setFormError("");
-                    setIsManualFineOpen(true);
-                  }}
-                >
+                onClick={() => {
+                  setFormError("");
+                  setIsManualFineOpen(true);
+                }}
+              >
                 <Plus size={14} />
                 Manual Fine Entry
               </Button>
-
             </div>
-
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl">
             <StatCard
               title="Total Fine"
-              value={isLoading || error ? "—" : `Rs. ${totalFineAmount.toFixed(2)}`}
+              value={
+                isLoading || error ? "—" : `Rs. ${totalFineAmount.toFixed(2)}`
+              }
             />
-            <StatCard title="Pending Records" value={isLoading || error ? "—" : String(pendingCount)} />
+            <StatCard
+              title="Pending Records"
+              value={isLoading || error ? "—" : String(pendingCount)}
+            />
           </div>
 
           <section className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
@@ -348,17 +386,26 @@ export const FinesPage: React.FC = () => {
                 <TabButton
                   active={tab === "all"}
                   label="All Fines"
-                  onClick={() => { setTab("all"); setPage(0); }}
+                  onClick={() => {
+                    setTab("all");
+                    setPage(0);
+                  }}
                 />
                 <TabButton
                   active={tab === "unpaid"}
                   label="Unpaid"
-                  onClick={() => { setTab("unpaid"); setPage(0); }}
+                  onClick={() => {
+                    setTab("unpaid");
+                    setPage(0);
+                  }}
                 />
                 <TabButton
                   active={tab === "paid"}
                   label="Resolved"
-                  onClick={() => { setTab("paid"); setPage(0); }}
+                  onClick={() => {
+                    setTab("paid");
+                    setPage(0);
+                  }}
                 />
               </div>
               <div className="flex items-center gap-2 w-full md:w-auto">
@@ -374,16 +421,26 @@ export const FinesPage: React.FC = () => {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
-
-
               </div>
             </div>
 
-            <DataTable headers={["ID", "Member", "Book Item", "Reason", "Overdue", "Amount", "Status"]}>
+            <DataTable
+              headers={[
+                "ID",
+                "Member",
+                "Book Item",
+                "Reason",
+                "Overdue",
+                "Amount",
+                "Status",
+              ]}
+            >
               {isLoading ? (
                 <tr>
                   <TableCell colSpan={7} center>
-                    <div className="py-10 text-gray-400 italic">Loading fines...</div>
+                    <div className="py-10 text-gray-400 italic">
+                      Loading fines...
+                    </div>
                   </TableCell>
                 </tr>
               ) : error ? (
@@ -396,34 +453,60 @@ export const FinesPage: React.FC = () => {
                 filteredFines.map((fine) => (
                   <tr
                     key={fine.id}
-                    className={`cursor-pointer transition-colors ${selectedFine?.id === fine.id ? "bg-blue-50" : "hover:bg-gray-50/50"
-                      }`}
-                    onClick={() => setSelectedFineId(selectedFine?.id === fine.id ? null : fine.id)}
+                    className={`cursor-pointer transition-colors ${
+                      selectedFine?.id === fine.id
+                        ? "bg-blue-50"
+                        : "hover:bg-gray-50/50"
+                    }`}
+                    onClick={() =>
+                      setSelectedFineId(
+                        selectedFine?.id === fine.id ? null : fine.id,
+                      )
+                    }
                   >
                     <TableCell>
-                      <span className="text-xs font-mono text-gray-400">{fine.id}</span>
+                      <span className="text-xs font-mono text-gray-400">
+                        {fine.id}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <p className="font-bold text-gray-900">{fine.member}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{fine.memberId}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {fine.memberId}
+                      </p>
                     </TableCell>
                     <TableCell center>
                       <span className="text-gray-800">{fine.book}</span>
                     </TableCell>
                     <TableCell center>
-                      <span className="text-gray-700">{fine.reason || "-"}</span>
+                      <span className="text-gray-700">
+                        {fine.reason || "-"}
+                      </span>
                     </TableCell>
                     <TableCell center>
-                      <span className={fine.overdueDays >= 10 ? "font-black text-red-600" : "text-gray-700"}>
+                      <span
+                        className={
+                          fine.overdueDays >= 10
+                            ? "font-black text-red-600"
+                            : "text-gray-700"
+                        }
+                      >
                         {fine.overdueDays}d
                       </span>
                     </TableCell>
                     <TableCell center>
-                      <span className="font-black text-gray-900">Rs. {fine.amount.toFixed(2)}</span>
+                      <span className="font-black text-gray-900">
+                        Rs. {fine.amount.toFixed(2)}
+                      </span>
                     </TableCell>
                     <TableCell center>
-                      <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-black ${fine.status === "Paid" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
-                        }`}>
+                      <span
+                        className={`inline-flex px-3 py-1 rounded-lg text-xs font-black ${
+                          fine.status === "Paid"
+                            ? "bg-green-50 text-green-700"
+                            : "bg-red-50 text-red-600"
+                        }`}
+                      >
                         {fine.status}
                       </span>
                     </TableCell>
@@ -438,7 +521,9 @@ export const FinesPage: React.FC = () => {
             )}
 
             <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-gray-50/30">
-              <p>Page {page + 1} of {totalPages}</p>
+              <p>
+                Page {page + 1} of {totalPages}
+              </p>
               <div className="flex items-center gap-2">
                 <button
                   disabled={page === 0}
@@ -449,7 +534,10 @@ export const FinesPage: React.FC = () => {
                 </button>
                 {paginationItems.map((item, idx) =>
                   item === "ellipsis" ? (
-                    <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">
+                    <span
+                      key={`ellipsis-${idx}`}
+                      className="px-2 text-gray-400"
+                    >
                       …
                     </span>
                   ) : (
@@ -566,10 +654,11 @@ export const FinesPage: React.FC = () => {
 
               <div className="mt-6">
                 <button
-                  className={`w-full h-11 rounded-lg text-sm font-semibold transition-colors ${selectedFine.status === "Paid"
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200"
-                    }`}
+                  className={`w-full h-11 rounded-lg text-sm font-semibold transition-colors ${
+                    selectedFine.status === "Paid"
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200"
+                  }`}
                   onClick={markAsPaid}
                   disabled={selectedFine.status === "Paid"}
                 >
@@ -609,7 +698,11 @@ export const FinesPage: React.FC = () => {
         }
       >
         <div className="space-y-5 py-2">
-          {formError && <div className="text-red-600 bg-red-50 p-2 rounded text-xs">{formError}</div>}
+          {formError && (
+            <div className="text-red-600 bg-red-50 p-2 rounded text-xs">
+              {formError}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <Input
               label="Copy ID *"
@@ -617,7 +710,12 @@ export const FinesPage: React.FC = () => {
               labelClassName="text-xs font-semibold text-gray-700"
               className="h-10 text-sm"
               value={manualFineForm.copyId}
-              onChange={(e) => setManualFineForm(prev => ({ ...prev, copyId: e.target.value }))}
+              onChange={(e) =>
+                setManualFineForm((prev) => ({
+                  ...prev,
+                  copyId: e.target.value,
+                }))
+              }
             />
             <Input
               label="Fine Amount (Rs.) *"
@@ -626,7 +724,12 @@ export const FinesPage: React.FC = () => {
               labelClassName="text-xs font-semibold text-gray-700"
               className="h-10 text-sm"
               value={manualFineForm.amount}
-              onChange={(e) => setManualFineForm(prev => ({ ...prev, amount: e.target.value }))}
+              onChange={(e) =>
+                setManualFineForm((prev) => ({
+                  ...prev,
+                  amount: e.target.value,
+                }))
+              }
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -637,7 +740,12 @@ export const FinesPage: React.FC = () => {
               <select
                 className="h-10 border border-gray-300 rounded-md px-3 text-sm text-gray-900 w-full focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 bg-white"
                 value={manualFineForm.reason}
-                onChange={(e) => setManualFineForm(prev => ({ ...prev, reason: e.target.value }))}
+                onChange={(e) =>
+                  setManualFineForm((prev) => ({
+                    ...prev,
+                    reason: e.target.value,
+                  }))
+                }
               >
                 <option>Overdue Return</option>
                 <option>Book Damage</option>
@@ -656,7 +764,12 @@ export const FinesPage: React.FC = () => {
                   className="w-full border border-gray-300 rounded-md p-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 min-h-[80px]"
                   placeholder="Any special notes regarding this fine..."
                   value={manualFineForm.comments}
-                  onChange={(e) => setManualFineForm(prev => ({ ...prev, comments: e.target.value }))}
+                  onChange={(e) =>
+                    setManualFineForm((prev) => ({
+                      ...prev,
+                      comments: e.target.value,
+                    }))
+                  }
                 ></textarea>
               </div>
             </div>
@@ -691,10 +804,11 @@ const TabButton = ({
   onClick: () => void;
 }) => (
   <button
-    className={`h-9 px-4 rounded-lg text-xs font-semibold transition-colors ${active
-      ? "bg-blue-500 text-white shadow-sm"
-      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-      }`}
+    className={`h-9 px-4 rounded-lg text-xs font-semibold transition-colors ${
+      active
+        ? "bg-blue-500 text-white shadow-sm"
+        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+    }`}
     onClick={onClick}
   >
     {label}

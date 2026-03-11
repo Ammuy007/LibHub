@@ -28,14 +28,18 @@ public class JwtFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if ("token".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-
-            String token = authHeader.substring(7);
-
+        if (token != null && !token.isBlank()) {
             try {
-                
                 String role = jwtUtil.extractRole(token);
                 Integer member_id = jwtUtil.extractMemberId(token);
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
@@ -49,7 +53,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
             } catch (Exception e) {
-                
+                // Ignore invalid tokens
             }
         }
 

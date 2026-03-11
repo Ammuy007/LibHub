@@ -7,6 +7,7 @@ import { SearchBar } from "../../components/ui/SearchBar/SearchBar";
 import { api } from "../../services/api";
 import type { BookResponse, LoanResponse } from "../../services/api";
 import { formatDateISO, isOverdue } from "../../services/format";
+import { useDebounce } from "../../hooks/useDebounce";
 
 export const UserLoansPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -19,6 +20,7 @@ export const UserLoansPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const pageSize = 10;
+  const debouncedSearch = useDebounce(searchQuery);
 
   useEffect(() => {
     let isMounted = true;
@@ -97,16 +99,16 @@ export const UserLoansPage: React.FC = () => {
 
   const filteredHistory = loanHistory.filter(
     (loan) =>
-      loan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      loan.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      loan.id.toLowerCase().includes(searchQuery.toLowerCase()),
+      loan.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      loan.author.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      loan.id.toLowerCase().includes(debouncedSearch.toLowerCase()),
   );
 
   const filteredActive = activeCheckouts.filter(
     (loan) =>
-      loan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      loan.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      loan.id.toLowerCase().includes(searchQuery.toLowerCase()),
+      loan.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      loan.author.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      loan.id.toLowerCase().includes(debouncedSearch.toLowerCase()),
   );
 
   const activeTotalPages = Math.max(

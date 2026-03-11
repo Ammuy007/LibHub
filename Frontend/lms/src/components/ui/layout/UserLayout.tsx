@@ -20,11 +20,7 @@ export const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
         const handlePopState = () => {
             const shouldLogout = window.confirm("Do you want to logout?");
             if (shouldLogout) {
-                try {
-                    localStorage.removeItem("authToken");
-                } catch {
-                    // noop
-                }
+                api.logout().catch(() => {});
                 navigate("/", { replace: true });
             } else {
                 window.history.pushState(null, "", window.location.pathname);

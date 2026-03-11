@@ -12,6 +12,7 @@ import type {
   MemberResponse,
 } from "../../services/api";
 import { formatDateISO, formatMemberId } from "../../services/format";
+import { useDebounce } from "../../hooks/useDebounce";
 
 export const OverdueItemsPage: React.FC = () => {
   const [search, setSearch] = useState("");
@@ -25,6 +26,7 @@ export const OverdueItemsPage: React.FC = () => {
   >({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const debouncedSearch = useDebounce(search);
 
   useEffect(() => {
     let isMounted = true;
@@ -162,7 +164,7 @@ export const OverdueItemsPage: React.FC = () => {
   }, [overdueLoans, fines, membersById, loanById]);
 
   const filteredData = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = debouncedSearch.toLowerCase();
     if (!q) return overdueData;
     return overdueData.filter(
       (item) =>
@@ -171,7 +173,7 @@ export const OverdueItemsPage: React.FC = () => {
         item.book.toLowerCase().includes(q) ||
         item.reason.toLowerCase().includes(q),
     );
-  }, [search, overdueData]);
+  }, [debouncedSearch, overdueData]);
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
   const paginatedData = useMemo(() => {

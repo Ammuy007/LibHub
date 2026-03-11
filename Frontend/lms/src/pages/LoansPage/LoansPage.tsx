@@ -19,6 +19,7 @@ import {
   formatRelativeTime,
   isOverdue,
 } from "../../services/format";
+import { useDebounce } from "../../hooks/useDebounce";
 
 export const LoansPage: React.FC = () => {
   const [actionMode, setActionMode] = useState<"issue" | "return">("issue");
@@ -43,6 +44,7 @@ export const LoansPage: React.FC = () => {
   const [returnForm, setReturnForm] = useState({ copyId: "", remarks: "" });
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const debouncedSearch = useDebounce(search);
 
   const mapLoanRecords = (loanList: LoanResponse[]) => {
     return loanList.map((loan) => {
@@ -171,7 +173,7 @@ export const LoansPage: React.FC = () => {
 
   const filteredLoans = useMemo(() => {
     return loanRecords.filter((loan) => {
-      const q = search.toLowerCase().trim();
+      const q = debouncedSearch.toLowerCase().trim();
       const matchesSearch =
         !q ||
         loan.copyId.toLowerCase().includes(q) ||
@@ -180,7 +182,7 @@ export const LoansPage: React.FC = () => {
 
       return matchesSearch;
     });
-  }, [search, loanRecords]);
+  }, [debouncedSearch, loanRecords]);
 
   const handleExportLoans = async () => {
     try {
@@ -199,7 +201,7 @@ export const LoansPage: React.FC = () => {
         currentPage += 1;
       }
       const mapped = mapLoanRecords(allLoans).filter((loan) => {
-        const q = search.toLowerCase().trim();
+        const q = debouncedSearch.toLowerCase().trim();
         if (!q) return true;
         return (
           loan.copyId.toLowerCase().includes(q) ||

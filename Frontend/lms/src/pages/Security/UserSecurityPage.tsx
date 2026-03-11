@@ -1,16 +1,40 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { UserLayout } from "../../components/ui/layout/UserLayout";
+import { MainLayout } from "../../components/ui/layout/MainLayout";
 import { Input } from "../../components/ui/Input/Input";
 import { Button } from "../../components/ui/Button/Button";
 import { api } from "../../services/api";
 
 export const UserSecurityPage: React.FC = () => {
+  const [role, setRole] = useState<"admin" | "member" | null>(null);
+  const [memberId, setMemberId] = useState<number | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadMe = async () => {
+      try {
+        const me = await api.getMe();
+        if (!isMounted) return;
+        setMemberId(me.memberId);
+        setRole(me.role?.toLowerCase() === "admin" ? "admin" : "member");
+      } catch {
+        if (!isMounted) return;
+        setRole("member");
+      }
+    };
+    loadMe();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const Layout = useMemo(() => (role === "admin" ? MainLayout : UserLayout), [role]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +50,10 @@ export const UserSecurityPage: React.FC = () => {
     }
     setIsSubmitting(true);
     try {
-      const me = await api.getMe();
-      await api.changePassword(me.memberId, {
+      if (!memberId) {
+        throw new Error("Unable to identify account. Please retry.");
+      }
+      await api.changePassword(memberId, {
         oldPassword: currentPassword,
         newPassword,
       });
@@ -42,8 +68,12 @@ export const UserSecurityPage: React.FC = () => {
     }
   };
 
+  if (!role) {
+    return null;
+  }
+
   return (
-    <UserLayout>
+    <Layout>
       <div className="max-w-[720px] mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Security</h1>
@@ -98,6 +128,6 @@ export const UserSecurityPage: React.FC = () => {
           </form>
         </section>
       </div>
-    </UserLayout>
+    </Layout>
   );
 };

@@ -10,6 +10,7 @@ import { api } from "../../services/api";
 import type { MemberResponse } from "../../services/api";
 import { formatMemberId, parseMemberId } from "../../services/format";
 import { AddMemberModal } from "../../components/modals/QuickLinks/AddMemberModal/AddMemberModal";
+import { useDebounce } from "../../hooks/useDebounce";
 
 export const MembersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export const MembersPage: React.FC = () => {
   >({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const debouncedSearch = useDebounce(search);
 
   const paginationItems = useMemo(() => {
     if (totalPages <= 1) return [0];
@@ -49,11 +51,11 @@ export const MembersPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const parsedId = parseMemberId(search);
+        const parsedId = parseMemberId(debouncedSearch);
         const [membersPage, loansPage] = await Promise.all([
           parsedId !== null
             ? api.getMembers({ id: parsedId, page: 0, size: pageSize })
-            : api.getMembers({ page, size: pageSize, name: search }),
+            : api.getMembers({ page, size: pageSize, name: debouncedSearch }),
           api.getLoans({ page: 0, size: 1000 }), // Get many loans for counts
         ]);
         if (!isMounted) return;
@@ -87,7 +89,7 @@ export const MembersPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [page, search]);
+  }, [page, debouncedSearch]);
 
   const filteredMembers = members;
 

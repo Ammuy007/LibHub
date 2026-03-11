@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Library, LogOut, ChevronDown, Settings, Menu, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { api } from "../../../services/api";
 interface PageHeaderProps {
   userName: string;
   settingsPath?: string | null;
@@ -12,11 +13,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ userName, settingsPath, 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      localStorage.removeItem("authToken");
+      await api.logout();
     } catch {
-      // noop
+      // Ignore logout failures
     }
     setIsProfileOpen(false);
     navigate("/");

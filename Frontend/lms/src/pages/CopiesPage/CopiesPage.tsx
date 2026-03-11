@@ -19,6 +19,7 @@ import { FilterSelect } from "../../components/ui/FilterSelect/FilterSelect";
 import { exportToCsv } from "../../utils/exportToCsv";
 import { StatCard } from "../../components/ui/StatCard/StatCard";
 import { api } from "../../services/api";
+import { useDebounce } from "../../hooks/useDebounce";
 import type {
   BookResponse,
   CopyResponse,
@@ -43,6 +44,8 @@ export const CopiesPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const statuses = ["All Status", "Available", "Issued"];
+  const debouncedSearch = useDebounce(search);
+  const debouncedStatusFilter = useDebounce(statusFilter);
   // --- Handlers ---
   const handleAddCopies = async () => {
     if (!bookName.trim()) return;
@@ -141,7 +144,7 @@ export const CopiesPage: React.FC = () => {
 
   // --- Search & Status Filtering Logic ---
   const filteredCopyRows = useMemo(() => {
-    const q = search.toLowerCase().trim();
+    const q = debouncedSearch.toLowerCase().trim();
 
     return copyRows.filter((r) => {
       // 1. Search Logic
@@ -154,11 +157,12 @@ export const CopiesPage: React.FC = () => {
 
       // 2. Dropdown Logic
       const matchesStatus =
-        statusFilter === "All Status" || r.status === statusFilter;
+        debouncedStatusFilter === "All Status" ||
+        r.status === debouncedStatusFilter;
 
       return matchesSearch && matchesStatus;
     });
-  }, [search, statusFilter, copyRows]); // Re-run when search or statusFilter changes
+  }, [debouncedSearch, debouncedStatusFilter, copyRows]); // Re-run when search or statusFilter changes
 
   const totalPages = Math.max(1, Math.ceil(filteredCopyRows.length / pageSize));
   const paginatedCopyRows = useMemo(() => {

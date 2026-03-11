@@ -11,6 +11,7 @@ import { AddBookModal } from "../../components/modals/QuickLinks/AddBookModal/Ad
 import { exportToCsv } from "../../utils/exportToCsv";
 import { api } from "../../services/api";
 import type { BookResponse, CopyResponse } from "../../services/api";
+import { useDebounce } from "../../hooks/useDebounce";
 
 const statuses = ["Status", "In Stock", "Out of Stock"];
 
@@ -29,6 +30,9 @@ export const BooksPage: React.FC = () => {
   // --- Filter States ---
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedStatus, setSelectedStatus] = useState("Status");
+  const debouncedSearch = useDebounce(search);
+  const debouncedCategory = useDebounce(selectedCategory);
+  const debouncedStatus = useDebounce(selectedStatus);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -136,21 +140,21 @@ export const BooksPage: React.FC = () => {
   const filteredBooks = useMemo(() => {
     return mappedBooks.filter((b) => {
       const matchesSearch =
-        !search ||
-        b.title.toLowerCase().includes(search.toLowerCase()) ||
-        b.author.toLowerCase().includes(search.toLowerCase()) ||
-        b.isbn.toLowerCase().includes(search.toLowerCase());
+        !debouncedSearch ||
+        b.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        b.author.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        b.isbn.toLowerCase().includes(debouncedSearch.toLowerCase());
 
       const matchesCategory =
-        selectedCategory === "All Categories" ||
-        b.categories.includes(selectedCategory);
+        debouncedCategory === "All Categories" ||
+        b.categories.includes(debouncedCategory);
 
       const matchesStatus =
-        selectedStatus === "Status" || b.status === selectedStatus;
+        debouncedStatus === "Status" || b.status === debouncedStatus;
 
       return matchesSearch && matchesCategory && matchesStatus;
     });
-  }, [search, selectedCategory, selectedStatus, mappedBooks]);
+  }, [debouncedSearch, debouncedCategory, debouncedStatus, mappedBooks]);
 
   const totalPages = Math.max(1, Math.ceil(filteredBooks.length / pageSize));
   const paginatedBooks = useMemo(() => {

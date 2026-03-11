@@ -24,6 +24,7 @@ import { EditMemberModal } from "../../components/modals/EditMember/EditMemberMo
 import { api } from "../../services/api";
 import type { BookResponse, FineResponse, LoanResponse, MemberResponse } from "../../services/api";
 import { formatDateISO, formatMemberId, isOverdue, parseMemberId } from "../../services/format";
+import { useDebounce } from "../../hooks/useDebounce";
 
 // --- Types ---
 type TabType = "active" | "history" | "fines";
@@ -66,6 +67,7 @@ export const MemberProfilePage: React.FC = () => {
   const [booksByTitle, setBooksByTitle] = useState<Record<string, BookResponse>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const debouncedSearch = useDebounce(search);
 
   const loadProfile = React.useCallback(async () => {
     setIsLoading(true);
@@ -170,31 +172,31 @@ export const MemberProfilePage: React.FC = () => {
   }, [fines, loans]);
 
   const filteredActiveLoans = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = debouncedSearch.toLowerCase();
     return activeLoans.filter(l =>
       l.title.toLowerCase().includes(q) ||
       l.id.toLowerCase().includes(q) ||
       l.isbn.toLowerCase().includes(q)
     );
-  }, [search, activeLoans]);
+  }, [debouncedSearch, activeLoans]);
 
   const filteredLoanHistory = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = debouncedSearch.toLowerCase();
     return loanHistory.filter(l =>
       l.title.toLowerCase().includes(q) ||
       l.id.toLowerCase().includes(q) ||
       l.isbn.toLowerCase().includes(q)
     );
-  }, [search, loanHistory]);
+  }, [debouncedSearch, loanHistory]);
 
   const filteredFines = useMemo(() => {
-    const q = search.toLowerCase();
+    const q = debouncedSearch.toLowerCase();
     return finesData.filter(f =>
       f.title.toLowerCase().includes(q) ||
       f.id.toLowerCase().includes(q) ||
       f.copyId.toLowerCase().includes(q)
     );
-  }, [search, finesData]);
+  }, [debouncedSearch, finesData]);
 
   const memberView = {
     name: member?.name ?? "Member",

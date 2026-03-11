@@ -1,7 +1,6 @@
 package com.example.lms.service;
 
 import com.example.lms.dto.LoginRequest;
-import com.example.lms.dto.LoginResponse;
 import com.example.lms.entity.Member;
 import com.example.lms.repository.MemberRepository;
 import com.example.lms.security.JwtUtil;
@@ -18,7 +17,7 @@ public class AuthServiceImpl implements AuthService {
     private final BCryptPasswordEncoder passwordEncoder;
 
     @Override
-    public LoginResponse login(LoginRequest request) {
+    public String login(LoginRequest request) {
 
         Member member = memberRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -33,6 +32,6 @@ public class AuthServiceImpl implements AuthService {
                 member.getMemberId()
         );
 
-        return new LoginResponse(token);
+        return token;
     }
 }

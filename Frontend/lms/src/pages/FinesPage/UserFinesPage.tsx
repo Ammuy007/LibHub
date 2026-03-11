@@ -6,6 +6,7 @@ import { FilterSelect } from "../../components/ui/FilterSelect/FilterSelect";
 import { api } from "../../services/api";
 import type { FineResponse, LoanResponse } from "../../services/api";
 import { formatCurrency, formatDateISO } from "../../services/format";
+import { useDebounce } from "../../hooks/useDebounce";
 
 interface FineDetail {
   id: string;
@@ -18,6 +19,7 @@ interface FineDetail {
 
 export const UserFinesPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState("Status");
+  const debouncedStatusFilter = useDebounce(statusFilter);
   const [fines, setFines] = useState<FineResponse[]>([]);
   const [loans, setLoans] = useState<LoanResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,7 +72,9 @@ export const UserFinesPage: React.FC = () => {
   }, [fines, loans]);
 
   const filteredFines = fineDetails.filter(
-    (fine) => statusFilter === "Status" || fine.status === statusFilter,
+    (fine) =>
+      debouncedStatusFilter === "Status" ||
+      fine.status === debouncedStatusFilter,
   );
 
   const totalFineAmount = useMemo(() => {

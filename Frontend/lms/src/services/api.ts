@@ -115,14 +115,6 @@ export type FineRequest = {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 const API_V1 = `${API_BASE_URL}/v1`;
 
-const getToken = () => {
-  try {
-    return localStorage.getItem("authToken") ?? "";
-  } catch {
-    return "";
-  }
-};
-
 // Hook called when any request returns 401 — set by app root to redirect to login
 let _onUnauthorized: (() => void) | null = null;
 export const setOnUnauthorized = (cb: () => void) => { _onUnauthorized = cb; };
@@ -148,18 +140,15 @@ const requestJson = async <T>(
   url: string,
   options: RequestInit = {},
 ): Promise<T> => {
-  const token = getToken();
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && options.body) {
     headers.set("Content-Type", "application/json");
-  }
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(url, {
     ...options,
     headers,
+    credentials: "include",
   });
 
   if (!response.ok) {
@@ -200,13 +189,18 @@ const requestJson = async <T>(
 
 export const api = {
   login: (email: string, password: string) =>
-    requestJson<{ token: string }>(`${API_BASE_URL}/auth/login`, {
+    requestJson<void>(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
 
   getMe: () =>
     requestJson<MeResponse>(`${API_BASE_URL}/auth/me`),
+
+  logout: () =>
+    requestJson<void>(`${API_BASE_URL}/auth/logout`, {
+      method: "POST",
+    }),
 
   getBooks: (params?: {
     id?: number;

@@ -5,8 +5,9 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { setOnUnauthorized } from "./services/api";
+import { api } from "./services/api";
 import { DashboardPage } from "./pages/DashboardPage/DashboardPage";
 import { LoginPage } from "./pages/LoginPage/LoginPage";
 import { MembersPage } from "./pages/MembersPage/MembersPage";
@@ -25,13 +26,31 @@ import { UserFinesPage } from "./pages/FinesPage/UserFinesPage";
 import { UserSecurityPage } from "./pages/Security/UserSecurityPage";
 
 const RequireAuth = ({ children }: { children: React.ReactNode }) => {
-  let token = "";
-  try {
-    token = localStorage.getItem("authToken") ?? "";
-  } catch {
-    token = "";
+  const [isChecking, setIsChecking] = useState(true);
+  const [isAuthed, setIsAuthed] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkAuth = async () => {
+      try {
+        await api.getMe();
+        if (isMounted) setIsAuthed(true);
+      } catch {
+        if (isMounted) setIsAuthed(false);
+      } finally {
+        if (isMounted) setIsChecking(false);
+      }
+    };
+    checkAuth();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (isChecking) {
+    return null;
   }
-  if (!token) {
+  if (!isAuthed) {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;
@@ -46,7 +65,7 @@ function AppRoutes() {
 
   useEffect(() => {
     setOnUnauthorized(() => {
-      try { localStorage.removeItem("authToken"); } catch { /* noop */ }
+      api.logout().catch(() => {});
       navigate("/", { replace: true });
     });
   }, [navigate]);

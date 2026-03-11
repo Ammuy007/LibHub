@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Sidebar } from "../Sidebar/Sidebar";
 import { PageHeader } from "../PageHeader/PageHeader";
 import { useLocation, useNavigate } from "react-router-dom";
+import { api } from "../../../services/api";
 
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -18,11 +19,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const handlePopState = () => {
       const shouldLogout = window.confirm("Do you want to logout?");
       if (shouldLogout) {
-        try {
-          localStorage.removeItem("authToken");
-        } catch {
-          // noop
-        }
+        api.logout().catch(() => {});
         navigate("/", { replace: true });
       } else {
         window.history.pushState(null, "", window.location.pathname);
