@@ -93,6 +93,25 @@ export type ReportResponse = {
   returnRate: number;
 };
 
+export type MeResponse = {
+  role: string;
+  memberId: number;
+};
+
+export type LoanRequest = {
+  memberId: number;
+  copyId: number;
+  issueDate: string;
+  loanPeriodDays: number;
+};
+
+export type FineRequest = {
+  loanId?: number;
+  copyId?: number;
+  amount: number;
+  reason?: string;
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 const API_V1 = `${API_BASE_URL}/v1`;
 
@@ -103,6 +122,10 @@ const getToken = () => {
     return "";
   }
 };
+
+// Hook called when any request returns 401 — set by app root to redirect to login
+let _onUnauthorized: (() => void) | null = null;
+export const setOnUnauthorized = (cb: () => void) => { _onUnauthorized = cb; };
 
 const buildQuery = (params?: Record<string, string | number | boolean | undefined | null>) => {
   if (!params) return "";
@@ -140,6 +163,10 @@ const requestJson = async <T>(
   });
 
   if (!response.ok) {
+    // Trigger global 401 handler (auto-logout / redirect to login)
+    if (response.status === 401 && _onUnauthorized) {
+      _onUnauthorized();
+    }
     let message = response.statusText;
     try {
       const data = await response.json();
@@ -178,6 +205,9 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
+  getMe: () =>
+    requestJson<MeResponse>(`${API_BASE_URL}/auth/me`),
+
   getBooks: (params?: {
     id?: number;
     isbn?: string;
@@ -203,18 +233,40 @@ export const api = {
     id?: number;
     memberId?: number;
     overdue?: boolean;
+    active?: boolean;
     page?: number;
     size?: number;
   }) =>
     requestJson<Page<LoanResponse>>(`${API_V1}/loans${buildQuery(params)}`),
+
+  createLoan: (data: LoanRequest) =>
+    requestJson<LoanResponse>(`${API_V1}/loans`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   returnLoan: (loanId: number) =>
     requestJson<LoanResponse>(`${API_V1}/loans/${loanId}/return`, {
       method: "PUT",
     }),
 
+  returnLoanByCopy: (copyId: number, remarks?: string) =>
+    requestJson<LoanResponse>(`${API_V1}/loans/return`, {
+      method: "PUT",
+      body: JSON.stringify({ copyId, remarks }),
+    }),
+
+  deleteLoan: (loanId: number) =>
+    requestJson<void>(`${API_V1}/loans/${loanId}`, { method: "DELETE" }),
+
   getFines: (params?: { id?: number; memberId?: number; status?: string; page?: number; size?: number }) =>
     requestJson<Page<FineResponse>>(`${API_V1}/fines${buildQuery(params)}`),
+
+  createFine: (data: FineRequest) =>
+    requestJson<FineResponse>(`${API_V1}/fines`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   markFinePaid: (fineId: number) =>
     requestJson<FineResponse>(`${API_V1}/fines/${fineId}/mark-paid`, {
@@ -235,6 +287,12 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  changePassword: (memberId: number, data: { oldPassword: string; newPassword: string }) =>
+    requestJson<void>(`${API_V1}/members/${memberId}/password`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
   getNextMemberId: () =>
     requestJson<number>(`${API_V1}/members/next-id`),
 
@@ -250,6 +308,21 @@ export const api = {
   getReport: (params?: { month?: number; year?: number }) =>
     requestJson<ReportResponse>(`${API_V1}/reports${buildQuery(params)}`),
 
+  sendOverdueEmail: (data: {
+    memberId: number;
+    memberName?: string;
+    bookTitle?: string;
+    dueDate?: string;
+    daysOverdue?: number;
+    fineAmount?: number;
+    type?: "loan" | "fine";
+    reason?: string;
+  }) =>
+    requestJson<void>(`${API_V1}/overdue/send-email`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
   createMember: (data: any) =>
     requestJson<MemberResponse>(`${API_V1}/members`, {
       method: "POST",
@@ -260,6 +333,11 @@ export const api = {
     requestJson<BookResponse>(`${API_V1}/books`, {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+
+  deleteBook: (bookId: number) =>
+    requestJson<void>(`${API_V1}/books/${bookId}`, {
+      method: "DELETE",
     }),
 
   getCategories: (params?: { page?: number; size?: number }) =>

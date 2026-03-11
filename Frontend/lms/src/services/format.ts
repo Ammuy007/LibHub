@@ -1,6 +1,12 @@
-export const formatMemberId = (id?: number | null) => {
-  if (!id && id !== 0) return "MEM-0000";
-  return `MEM-${String(id).padStart(4, "0")}`;
+export const formatMemberId = (
+  id?: number | null,
+  membershipStart?: string | null,
+) => {
+  if (!id && id !== 0) return "MEM-0000-0000";
+  const date = membershipStart ? new Date(membershipStart) : null;
+  const year =
+    date && !Number.isNaN(date.getTime()) ? date.getFullYear() : new Date().getFullYear();
+  return `MEM-${year}-${String(id).padStart(4, "0")}`;
 };
 
 export const parseMemberId = (value?: string | null) => {

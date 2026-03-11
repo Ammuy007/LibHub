@@ -1,25 +1,57 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Modal } from "../Register/Modal";
 import { Input } from "../../ui/Input/Input";
 import { Button } from "../../ui/Button/Button";
-import { Mail, Phone, User, MapPin } from "lucide-react";
+import { Phone, User, MapPin } from "lucide-react";
 
 interface EditProfileModalProps {
     isOpen: boolean;
     onClose: () => void;
     initialData: {
         name: string;
-        email: string;
         phone: string;
         location: string;
     };
+    onSave: (data: { name: string; phone: string; location: string }) => Promise<void>;
 }
 
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     isOpen,
     onClose,
     initialData,
+    onSave,
 }) => {
+    const [form, setForm] = useState({
+        name: initialData.name,
+        phone: initialData.phone,
+        location: initialData.location,
+    });
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setForm({
+                name: initialData.name,
+                phone: initialData.phone,
+                location: initialData.location,
+            });
+        }
+    }, [isOpen, initialData]);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await onSave({
+                name: form.name,
+                phone: form.phone,
+                location: form.location,
+            });
+            onClose();
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return (
         <Modal
             isOpen={isOpen}
@@ -33,8 +65,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     <Button variant="outline" onClick={onClose} className="h-10">
                         Cancel
                     </Button>
-                    <Button variant="primary" onClick={onClose} className="h-10 px-8">
-                        Save Changes
+                    <Button variant="primary" onClick={handleSave} className="h-10 px-8" disabled={isSaving}>
+                        {isSaving ? "Saving..." : "Save Changes"}
                     </Button>
                 </div>
             }
@@ -42,29 +74,25 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             <div className="space-y-6">
                 <Input
                     label="Full Name"
-                    defaultValue={initialData.name}
+                    value={form.name}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     leftIcon={<User size={16} />}
                     placeholder="e.g. Alex Rivera"
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
-                        label="Email Address"
-                        type="email"
-                        defaultValue={initialData.email}
-                        leftIcon={<Mail size={16} />}
-                        placeholder="alex.rivera@example.com"
-                    />
-                    <Input
                         label="Phone Number"
                         type="tel"
-                        defaultValue={initialData.phone}
+                        value={form.phone}
+                        onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
                         leftIcon={<Phone size={16} />}
                         placeholder="XXXXXXXXXX"
                     />
                 </div>
                 <Input
                     label="Address"
-                    defaultValue={initialData.location}
+                    value={form.location}
+                    onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
                     leftIcon={<MapPin size={16} />}
                     placeholder="Whitefield, Bengaluru"
                 />

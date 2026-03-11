@@ -13,7 +13,7 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    "transition-all duration-200 flex items-center justify-center gap-2";
+    "transition-all duration-200 flex items-center justify-center gap-2 leading-tight text-xs sm:text-sm [&_svg]:h-3 [&_svg]:w-3 sm:[&_svg]:h-4 sm:[&_svg]:w-4 [&_svg]:shrink-0";
 
   const variants = {
     primary: "px-5 py-2.5 bg-blue-600 rounded-xl text-sm font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-700",

@@ -255,7 +255,9 @@ export const MemberProfilePage: React.FC = () => {
                     {isActive ? "Active Member" : "Deactivated"}
                   </span>
                 </div>
-                <p className="text-sm text-gray-500">Member ID: #{member?.id ? formatMemberId(member.id) : memberId}</p>
+                <p className="text-sm text-gray-500">
+                  Member ID: #{member?.id ? formatMemberId(member.id, member.membershipStart) : memberId}
+                </p>
               </div>
               <Button onClick={() => setIsEditModalOpen(true)}>Edit Profile</Button>
             </div>

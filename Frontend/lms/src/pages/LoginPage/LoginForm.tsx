@@ -18,7 +18,7 @@ export const LoginForm: React.FC = () => {
     const password = String(formData.get("password") ?? "").trim();
 
     if (!email || !password) {
-      navigate("dashboard")
+      window.alert("Please enter your email and password.");
       return;
     }
     setIsSubmitting(true);
@@ -30,12 +30,11 @@ export const LoginForm: React.FC = () => {
         // Ignore storage failures (private mode)
       }
 
+      // Determine role from the JWT via /auth/me (single clean call)
       let destination = "/user/dashboard";
       try {
-        const members = await api.getMembers({ page: 0, size: 10 });
-        const matched = members.content.find((m) => m.email?.toLowerCase() === email.toLowerCase());
-        const role = matched?.role ?? members.content[0]?.role;
-        if (role?.toLowerCase() === "admin") {
+        const me = await api.getMe();
+        if (me.role?.toLowerCase() === "admin") {
           destination = "/dashboard";
         }
       } catch {
@@ -50,6 +49,7 @@ export const LoginForm: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <Card className="w-full border border-gray-200 rounded-md p-5 shadow-sm">

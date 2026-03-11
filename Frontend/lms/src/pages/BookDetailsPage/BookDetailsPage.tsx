@@ -5,16 +5,19 @@ import {
   Clock3,
   ShieldCheck,
   Trash2,
-
-  Plus
+  Plus,
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { MainLayout } from "../../components/ui/layout/MainLayout";
 import { Modal } from "../../components/modals/Register/Modal";
 import { Button } from "../../components/ui/Button/Button";
 import { DataTable, TableCell } from "../../components/ui/Table/Table";
-import { api } from "../../services/api";
-import type { BookResponse, CopyResponse, LoanResponse } from "../../services/api";
+import { api, ApiError } from "../../services/api";
+import type {
+  BookResponse,
+  CopyResponse,
+  LoanResponse,
+} from "../../services/api";
 import { formatDateISO, isOverdue } from "../../services/format";
 
 export const BookDetailsPage: React.FC = () => {
@@ -31,6 +34,7 @@ export const BookDetailsPage: React.FC = () => {
   const [isAddCopyModalOpen, setIsAddCopyModalOpen] = useState(false);
   const [copiesToAdd, setCopiesToAdd] = useState("1");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -38,6 +42,12 @@ export const BookDetailsPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
+        const me = await api.getMe();
+        if (!isMounted) return;
+        if (me.role?.toLowerCase() === "member") {
+          navigate("/user/books", { replace: true });
+          return;
+        }
         const books = await api.getBooks({ title: decodedTitle });
         if (!isMounted) return;
         const found = books[0] ?? null;
@@ -50,7 +60,11 @@ export const BookDetailsPage: React.FC = () => {
             ]);
             if (!isMounted) return;
             setCopies(copiesResponse);
-            setLoans(loansPage.content.filter((loan) => loan.bookTitle === found.title));
+            setLoans(
+              loansPage.content.filter(
+                (loan) => loan.bookTitle === found.title,
+              ),
+            );
           } catch (err) {
             if (!isMounted) return;
             setCopies([]);
@@ -84,6 +98,11 @@ export const BookDetailsPage: React.FC = () => {
     }, {});
   }, [loans]);
 
+  const hasActiveLoans = useMemo(
+    () => loans.some((loan) => !loan.returnDate),
+    [loans],
+  );
+
   const mappedCopies = useMemo(() => {
     return copies.map((copy) => {
       const loan = loanByCopyId[copy.copyId];
@@ -91,21 +110,28 @@ export const BookDetailsPage: React.FC = () => {
       const overdue = loan ? isOverdue(loan.dueDate, loan.returnDate) : false;
       return {
         id: `CP-${copy.copyId}`,
-        accessionNo: `LMS-${copy.copyId}`,
         status: issued ? "Issued" : "Available",
         statusType: overdue ? "overdue" : issued ? "issued" : "ok",
         dueDate: issued ? formatDateISO(loan?.dueDate) : "-",
-        currentHolder: issued ? loan?.memberName ?? "-" : "Library Shelf",
+        currentHolder: issued ? (loan?.memberName ?? "-") : "Library Shelf",
       };
     });
   }, [copies, loanByCopyId]);
 
-  const statCounts = useMemo(() => ({
-    total: copies.length,
-    available: copies.filter((copy) => copy.status?.toLowerCase() === "available").length,
-    issued: copies.filter((copy) => copy.status?.toLowerCase() !== "available").length,
-    overdue: loans.filter((loan) => isOverdue(loan.dueDate, loan.returnDate)).length,
-  }), [copies, loans]);
+  const statCounts = useMemo(
+    () => ({
+      total: copies.length,
+      available: copies.filter(
+        (copy) => copy.status?.toLowerCase() === "available",
+      ).length,
+      issued: copies.filter(
+        (copy) => copy.status?.toLowerCase() !== "available",
+      ).length,
+      overdue: loans.filter((loan) => isOverdue(loan.dueDate, loan.returnDate))
+        .length,
+    }),
+    [copies, loans],
+  );
 
   const handleAddCopies = async () => {
     const parsedValue = parseInt(copiesToAdd, 10);
@@ -123,20 +149,47 @@ export const BookDetailsPage: React.FC = () => {
     }
   };
 
+  const handleDeleteBook = async () => {
+    if (!book?.book_id) {
+      navigate("/books");
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await api.deleteBook(book.book_id);
+      navigate("/books");
+    } catch (err) {
+      console.error("Failed to delete book", err);
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : "Unable to delete book right now.";
+      window.alert(message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <MainLayout>
       <div className="max-w-[1600px] mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/books" className="text-sm text-gray-500 hover:text-blue-600">← Back to Catalog</Link>
+            <Link
+              to="/books"
+              className="text-sm text-gray-500 hover:text-blue-600"
+            >
+              ← Back to Catalog
+            </Link>
             <h1 className="text-2xl font-bold text-gray-900">Book Details</h1>
           </div>
           <div className="flex gap-3">
             <Button onClick={() => setIsAddCopyModalOpen(true)}>
               <Plus size={16} /> Add New Copy
             </Button>
-            <Button className="bg-red-500 hover:bg-red-600 text-white"
+            <Button
+              className="bg-red-500 hover:bg-red-600 text-white"
               onClick={() => setIsDeleteModalOpen(true)}
             >
               <Trash2 size={16} /> Delete
@@ -147,7 +200,19 @@ export const BookDetailsPage: React.FC = () => {
         {/* Book Info Card */}
         <section className="rounded-[32px] border border-gray-200 bg-white overflow-hidden shadow-sm">
           <div className="p-8 flex flex-col lg:flex-row gap-8">
-            <div className="w-40 h-56 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
+            <div className="w-40 h-56 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
+              {book?.isbn ? (
+                <img
+                  src={`https://covers.openlibrary.org/b/isbn/${encodeURIComponent(
+                    book.isbn,
+                  )}-M.jpg`}
+                  alt={book.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              ) : null}
               <BookCopy size={40} className="text-blue-200" />
             </div>
 
@@ -156,63 +221,97 @@ export const BookDetailsPage: React.FC = () => {
                 <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-600">
                   General
                 </span>
-                <h2 className="text-4xl font-black text-gray-900 tracking-tight">{book?.title ?? decodedTitle}</h2>
-                <p className="text-gray-500 font-medium italic">by {book?.author ?? "Unknown"}</p>
+                <h2 className="text-4xl font-black text-gray-900 tracking-tight">
+                  {book?.title ?? decodedTitle}
+                </h2>
+                <p className="text-gray-500 font-medium italic">
+                  by {book?.author ?? "Unknown"}
+                </p>
               </div>
-              <p className="text-sm text-gray-500 leading-relaxed max-w-3xl">{book?.description ?? "No description available."}</p>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-3xl">
+                {book?.description ?? "No description available."}
+              </p>
 
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
                 <Meta label="ISBN-13" value={book?.isbn ?? "-"} />
                 <Meta label="Publisher" value={book?.publisher ?? "-"} />
-                <Meta label="Year" value={book?.publish_year?.toString() ?? "-"} />
-
+                <Meta
+                  label="Year"
+                  value={book?.publish_year?.toString() ?? "-"}
+                />
               </div>
             </div>
           </div>
 
-
           <div className="grid grid-cols-2 lg:grid-cols-4 border-t border-gray-100">
-            <Stat icon={<BookCopy size={16} />} label="Total Copies" value={statCounts.total} />
-            <Stat icon={<ShieldCheck size={16} />} label="Available" value={statCounts.available} />
-            <Stat icon={<Clock3 size={16} />} label="Issued" value={statCounts.issued} />
-            <Stat icon={<CircleAlert size={16} />} label="Overdue" value={statCounts.overdue} valueClass="text-red-500" />
+            <Stat
+              icon={<BookCopy size={16} />}
+              label="Total Copies"
+              value={statCounts.total}
+            />
+            <Stat
+              icon={<ShieldCheck size={16} />}
+              label="Available"
+              value={statCounts.available}
+            />
+            <Stat
+              icon={<Clock3 size={16} />}
+              label="Issued"
+              value={statCounts.issued}
+            />
+            <Stat
+              icon={<CircleAlert size={16} />}
+              label="Overdue"
+              value={statCounts.overdue}
+              valueClass="text-red-500"
+            />
           </div>
 
-
-
           {/* Inventory Table */}
-          <DataTable headers={["Copy ID", "Accession", "Status", "Due Date", "Current Holder"]}>
+          <DataTable
+            headers={["Copy ID", "Status", "Due Date", "Current Holder"]}
+          >
             {isLoading ? (
               <tr>
-                <TableCell colSpan={5} center>
-                  <div className="py-10 text-gray-400 italic">Loading copies...</div>
+                <TableCell colSpan={4} center>
+                  <div className="py-10 text-gray-400 italic">
+                    Loading copies...
+                  </div>
                 </TableCell>
               </tr>
             ) : error ? (
               <tr>
-                <TableCell colSpan={5} center>
+                <TableCell colSpan={4} center>
                   <div className="py-10 text-red-500 italic">{error}</div>
                 </TableCell>
               </tr>
             ) : mappedCopies.length === 0 ? (
               <tr>
-                <TableCell colSpan={5} center>
-                  <div className="py-10 text-gray-400 italic">No copies found.</div>
+                <TableCell colSpan={4} center>
+                  <div className="py-10 text-gray-400 italic">
+                    No copies found.
+                  </div>
                 </TableCell>
               </tr>
             ) : (
               mappedCopies.map((copy) => (
-                <tr key={copy.id} className="group hover:bg-gray-50/50 transition-colors">
+                <tr
+                  key={copy.id}
+                  className="group hover:bg-gray-50/50 transition-colors"
+                >
                   <TableCell className="font-mono text-xs text-blue-600 font-bold px-8">
                     {copy.id}
                   </TableCell>
-                  <TableCell center className="text-sm font-bold text-gray-700">
-                    {copy.accessionNo}
-                  </TableCell>
                   <TableCell center>
-                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${copy.statusType === 'ok' ? 'bg-green-50 text-green-600' :
-                      copy.statusType === 'issued' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'
-                      }`}>
+                    <span
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${
+                        copy.statusType === "ok"
+                          ? "bg-green-50 text-green-600"
+                          : copy.statusType === "issued"
+                            ? "bg-blue-50 text-blue-600"
+                            : "bg-red-50 text-red-600"
+                      }`}
+                    >
                       {copy.status}
                     </span>
                   </TableCell>
@@ -239,13 +338,25 @@ export const BookDetailsPage: React.FC = () => {
         subtitle="Add new physical copy of this book to the library"
         footer={
           <div className="flex gap-3 w-full">
-            <button className="flex-1 h-12 rounded-xl bg-gray-50 font-bold text-gray-500" onClick={() => setIsAddCopyModalOpen(false)}>Cancel</button>
-            <button className="flex-[2] h-12 rounded-xl bg-blue-600 font-bold text-white shadow-lg shadow-blue-100" onClick={handleAddCopies}>Confirm</button>
+            <button
+              className="flex-1 h-12 rounded-xl bg-gray-50 font-bold text-gray-500"
+              onClick={() => setIsAddCopyModalOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="flex-[2] h-12 rounded-xl bg-blue-600 font-bold text-white shadow-lg shadow-blue-100"
+              onClick={handleAddCopies}
+            >
+              Confirm
+            </button>
           </div>
         }
       >
         <div className="space-y-4">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Quantity</label>
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+            Quantity
+          </label>
           <input
             type="number"
             min={1}
@@ -261,18 +372,55 @@ export const BookDetailsPage: React.FC = () => {
         onClose={() => setIsDeleteModalOpen(false)}
         variant="danger"
         title="Delete Book"
-        subtitle="This action cannot be undone."
+        subtitle={
+          hasActiveLoans
+            ? "Cannot delete a book with active loans."
+            : "This action cannot be undone."
+        }
         maxWidthClassName="max-w-md"
         footer={
-          <div className="flex gap-3 w-full">
-            <button className="flex-1 h-12 rounded-xl bg-gray-50 font-bold text-gray-500" onClick={() => setIsDeleteModalOpen(false)}>Cancel</button>
-            <button className="flex-[2] h-12 rounded-xl bg-red-600 font-bold text-white shadow-lg shadow-red-100" onClick={() => navigate("/books")}>Confirm Delete</button>
-          </div>
+          hasActiveLoans ? (
+            <div className="flex justify-center w-full">
+              <button
+                className="h-12 px-8 rounded-xl bg-gray-50 font-bold text-gray-500"
+                onClick={() => setIsDeleteModalOpen(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-3 w-full">
+              <button
+                className="flex-1 h-12 rounded-xl bg-gray-50 font-bold text-gray-500"
+                onClick={() => setIsDeleteModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="flex-[2] h-12 rounded-xl bg-red-600 font-bold text-white shadow-lg shadow-red-100"
+                onClick={handleDeleteBook}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Confirm Delete"}
+              </button>
+            </div>
+          )
         }
       >
-        <p className="text-sm text-gray-500 leading-relaxed px-1">
-          Are you sure you want to remove <span className="font-bold text-gray-900">{book?.title ?? decodedTitle}</span> from the library catalog?
-        </p>
+        {hasActiveLoans ? (
+          <p className="text-sm text-gray-500 leading-relaxed px-1">
+            This book has active loans. Please ensure all copies are returned
+            before deleting it.
+          </p>
+        ) : (
+          <p className="text-sm text-gray-500 leading-relaxed px-1">
+            Are you sure you want to remove{" "}
+            <span className="font-bold text-gray-900">
+              {book?.title ?? decodedTitle}
+            </span>{" "}
+            from the library catalog?
+          </p>
+        )}
       </Modal>
     </MainLayout>
   );
@@ -281,7 +429,9 @@ export const BookDetailsPage: React.FC = () => {
 // Sub-components
 const Meta = ({ label, value }: { label: string; value: string }) => (
   <div>
-    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">{label}</p>
+    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">
+      {label}
+    </p>
     <p className="text-sm font-bold text-gray-700">{value}</p>
   </div>
 );
@@ -290,7 +440,9 @@ const Stat = ({ icon, label, value, valueClass = "text-gray-900" }: any) => (
   <div className="px-8 py-5 border-r border-gray-100 last:border-r-0">
     <div className="flex items-center gap-2 text-gray-400 mb-1">
       {icon}
-      <p className="text-[10px] font-black uppercase tracking-widest">{label}</p>
+      <p className="text-[10px] font-black uppercase tracking-widest">
+        {label}
+      </p>
     </div>
     <p className={`text-2xl font-black ${valueClass}`}>{value}</p>
   </div>

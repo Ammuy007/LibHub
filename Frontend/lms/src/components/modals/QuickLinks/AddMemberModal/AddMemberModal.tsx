@@ -30,7 +30,10 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
   const [formData, setFormData] = useState(initialFormState);
   const [nextId, setNextId] = useState<number | null>(null);
-  const currentMonth = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(new Date());
+  const currentMonth = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
 
   React.useEffect(() => {
     if (isOpen) {
@@ -48,7 +51,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     try {
       await api.createMember(formData);
       handleClose();
-      // Optionally trigger a refresh of dashboard data here if needed, 
+      // Optionally trigger a refresh of dashboard data here if needed,
       // but usually the modal closing is enough if the parent re-fetches.
       window.location.reload(); // Quick way to refresh all stats
     } catch (err) {
@@ -74,10 +77,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
             </div>
           </div>
 
-          <form
-            className="space-y-6"
-            onSubmit={handleSubmit}
-          >
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               <InputGroup
                 label="Full Name"

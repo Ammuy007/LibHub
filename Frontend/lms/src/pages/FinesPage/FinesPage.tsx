@@ -24,6 +24,7 @@ type FineRecord = {
   ratePerDay: number;
   amount: number;
   status: FineStatus;
+  reason: string;
 };
 
 export const FinesPage: React.FC = () => {
@@ -37,6 +38,108 @@ export const FinesPage: React.FC = () => {
   const [isManualFineOpen, setIsManualFineOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
+
+  const [manualFineForm, setManualFineForm] = useState({ copyId: "", amount: "", reason: "Overdue Return", comments: "" });
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingCountTotal, setPendingCountTotal] = useState(0);
+  const [unpaidTotalAmount, setUnpaidTotalAmount] = useState(0);
+
+  const mapFineRecords = (
+    fineList: any[],
+    loansById: Record<number, LoanResponse>,
+  ): FineRecord[] => {
+    const toDateOnly = (value?: string | null) => {
+      if (!value) return null;
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return null;
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    };
+
+    return fineList.map((fine) => {
+      const loan = loansById[fine.loanId];
+      const dueDate = toDateOnly(loan?.dueDate);
+      const returnedDate = toDateOnly(loan?.returnDate);
+      const today = toDateOnly(new Date().toISOString());
+      const effectiveReturn = returnedDate ?? today;
+      const diffDays =
+        dueDate && effectiveReturn
+          ? Math.floor(
+              (effectiveReturn.getTime() - dueDate.getTime()) /
+                (1000 * 60 * 60 * 24),
+            )
+          : 0;
+      const overdueDays = Math.max(0, diffDays);
+      const ratePerDay = 10;
+      const status: FineStatus =
+        fine.status?.toLowerCase() === "paid" ? "Paid" : "Unpaid";
+      return {
+        id: `F-${fine.fineId}`,
+        member: fine.memberName ?? "-",
+        memberId: `M-${fine.memberId}`,
+        book: loan?.bookTitle ?? "-",
+        loanId: `L-${fine.loanId}`,
+        dueDate: loan?.dueDate ? formatDateISO(loan.dueDate) : "-",
+        returnedDate: loan?.returnDate ? formatDateISO(loan.returnDate) : "-",
+        overdueDays,
+        ratePerDay,
+        amount: fine.amount ?? 0,
+        status,
+        reason: fine.reason ?? "",
+      };
+    });
+  };
+
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 1) return [0];
+    const current = page;
+    const last = totalPages - 1;
+    const items: Array<number | "ellipsis"> = [];
+    items.push(0);
+    const start = Math.max(1, current - 1);
+    const end = Math.min(last - 1, current + 1);
+    if (start > 1) items.push("ellipsis");
+    for (let i = start; i <= end; i += 1) {
+      items.push(i);
+    }
+    if (end < last - 1) items.push("ellipsis");
+    if (last > 0) items.push(last);
+    return items;
+  }, [page, totalPages]);
+
+  const handleIssueFine = async () => {
+    setFormError("");
+    if (!manualFineForm.copyId || !manualFineForm.amount) {
+      setFormError("Copy ID and Fine Amount are required.");
+      return;
+    }
+    if (manualFineForm.reason === "Other" && !manualFineForm.comments.trim()) {
+      setFormError("Please add a reason in Additional Comments.");
+      return;
+    }
+    const amountNum = parseFloat(manualFineForm.amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setFormError("Invalid amount.");
+      return;
+    }
+    const copyIdNum = parseInt(manualFineForm.copyId.replace(/[^0-9]/g, ""));
+    setIsSubmitting(true);
+    try {
+      await api.createFine({
+        copyId: copyIdNum,
+        amount: amountNum,
+        reason: manualFineForm.reason === "Other" ? manualFineForm.comments.trim() : manualFineForm.reason,
+      });
+      setIsManualFineOpen(false);
+      setManualFineForm({ copyId: "", amount: "", reason: "Overdue Return", comments: "" });
+      setRefreshCounter(c => c + 1);
+    } catch (err: any) {
+      setFormError(err.message || "Failed to issue fine");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -44,8 +147,10 @@ export const FinesPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
+        const statusFilter =
+          tab === "paid" ? "paid" : tab === "unpaid" ? "unpaid" : undefined;
         const [finesPage, loansPage] = await Promise.all([
-          api.getFines({ page, size: pageSize }),
+          api.getFines({ page, size: pageSize, status: statusFilter }),
           api.getLoans({ page: 0, size: 1000 }), // Get more loans for mapping
         ]);
         if (!isMounted) return;
@@ -55,31 +160,30 @@ export const FinesPage: React.FC = () => {
           return acc;
         }, {});
 
-        const mapped = finesPage.content.map((fine) => {
-          const loan = loansById[fine.loanId];
-          const dueDate = loan?.dueDate ? new Date(loan.dueDate) : null;
-          const returnedDate = loan?.returnDate ? new Date(loan.returnDate) : null;
-          const now = new Date();
-          const effectiveReturn = returnedDate ?? now;
-          const overdueDays = dueDate ? Math.max(0, Math.ceil((effectiveReturn.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))) : 0;
-          const ratePerDay = overdueDays > 0 ? Math.round(fine.amount / overdueDays) || 10 : 10;
-          const status: FineStatus = fine.status?.toLowerCase() === "paid" ? "Paid" : "Unpaid";
-          return {
-            id: `F-${fine.fineId}`,
-            member: fine.memberName ?? "-",
-            memberId: `M-${fine.memberId}`,
-            book: loan?.bookTitle ?? "-",
-            loanId: `L-${fine.loanId}`,
-            dueDate: loan?.dueDate ? formatDateISO(loan.dueDate) : "-",
-            returnedDate: loan?.returnDate ? formatDateISO(loan.returnDate) : "-",
-            overdueDays,
-            ratePerDay,
-            amount: fine.amount ?? 0,
-            status,
-          };
-        });
+        setFines(mapFineRecords(finesPage.content, loansById));
 
-        setFines(mapped);
+        // Fetch unpaid totals across all pages
+        let unpaidCount = 0;
+        let unpaidAmount = 0;
+        let current = 0;
+        let total = 1;
+        while (current < total) {
+          const unpaidPage = await api.getFines({
+            page: current,
+            size: pageSize,
+            status: "unpaid",
+          });
+          unpaidPage.content.forEach((fine) => {
+            unpaidCount += 1;
+            const paidAmount = fine.paidAmount ?? 0;
+            const amount = fine.amount ?? 0;
+            unpaidAmount += Math.max(0, amount - paidAmount);
+          });
+          total = unpaidPage.totalPages;
+          current += 1;
+        }
+        setPendingCountTotal(unpaidCount);
+        setUnpaidTotalAmount(unpaidAmount);
       } catch (err) {
         if (!isMounted) return;
         console.error("Failed to load fines", err);
@@ -93,15 +197,10 @@ export const FinesPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [page]);
+  }, [page, refreshCounter, tab]);
 
   const filteredFines = useMemo(() => {
     return fines.filter((fine) => {
-      const matchesTab =
-        tab === "all" ||
-        (tab === "unpaid" && fine.status === "Unpaid") ||
-        (tab === "paid" && fine.status === "Paid");
-
       const matchesSearch =
         !search ||
         fine.member.toLowerCase().includes(search.toLowerCase()) ||
@@ -109,16 +208,16 @@ export const FinesPage: React.FC = () => {
         fine.book.toLowerCase().includes(search.toLowerCase()) ||
         fine.id.toLowerCase().includes(search.toLowerCase());
 
-      return matchesTab && matchesSearch;
+      return matchesSearch;
     });
-  }, [fines, tab, search]);
+  }, [fines, search]);
 
   const selectedFine = selectedFineId
     ? fines.find((fine) => fine.id === selectedFineId) || null
     : null;
 
-  const totalFineAmount = fines.reduce((sum, fine) => sum + fine.amount, 0);
-  const pendingCount = fines.filter((fine) => fine.status === "Unpaid").length;
+  const totalFineAmount = unpaidTotalAmount;
+  const pendingCount = pendingCountTotal;
 
   const markAsPaid = async () => {
     if (!selectedFine || selectedFine.status === "Paid") {
@@ -128,14 +227,70 @@ export const FinesPage: React.FC = () => {
       const numericId = Number(selectedFine.id.replace(/[^0-9]/g, ""));
       if (Number.isNaN(numericId)) return;
       await api.markFinePaid(numericId);
-      setFines((prev) =>
-        prev.map((fine) =>
-          fine.id === selectedFine.id ? { ...fine, status: "Paid" } : fine,
-        ),
-      );
+      setRefreshCounter((c) => c + 1);
     } catch (err) {
       console.error("Failed to mark fine as paid", err);
       window.alert("Unable to update fine status right now.");
+    }
+  };
+
+  const handleExportFines = async () => {
+    const statusFilter =
+      tab === "paid" ? "paid" : tab === "unpaid" ? "unpaid" : undefined;
+    try {
+      const allFines: any[] = [];
+      let currentPage = 0;
+      let total = 1;
+      while (currentPage < total) {
+        const pageData = await api.getFines({
+          page: currentPage,
+          size: pageSize,
+          status: statusFilter,
+        });
+        allFines.push(...pageData.content);
+        total = pageData.totalPages;
+        currentPage += 1;
+      }
+
+      const allLoans: LoanResponse[] = [];
+      let loanPage = 0;
+      let loanTotal = 1;
+      while (loanPage < loanTotal) {
+        const loanData = await api.getLoans({ page: loanPage, size: 200 });
+        allLoans.push(...loanData.content);
+        loanTotal = loanData.totalPages;
+        loanPage += 1;
+      }
+
+      const loansById = allLoans.reduce<Record<number, LoanResponse>>((acc, loan) => {
+        acc[loan.loanId] = loan;
+        return acc;
+      }, {});
+
+      const mapped = mapFineRecords(allFines, loansById).filter((fine) => {
+        const q = search.toLowerCase().trim();
+        if (!q) return true;
+        return (
+          fine.member.toLowerCase().includes(q) ||
+          fine.memberId.toLowerCase().includes(q) ||
+          fine.book.toLowerCase().includes(q) ||
+          fine.id.toLowerCase().includes(q)
+        );
+      });
+
+      exportToCsv(
+        `fines_${tab}`,
+        ["ID", "Member", "Member ID", "Book", "Loan ID", "Due Date", "Returned Date", "Overdue Days", "Rate/Day", "Amount", "Status"],
+        mapped.map((f) => [
+          f.id, f.member, f.memberId, f.book, f.loanId,
+          f.dueDate, f.returnedDate,
+          String(f.overdueDays), String(f.ratePerDay),
+          String(f.amount), f.status,
+        ]),
+      );
+    } catch (err) {
+      console.error("Failed to export fines", err);
+      window.alert("Unable to export fines right now.");
     }
   };
 
@@ -159,26 +314,18 @@ export const FinesPage: React.FC = () => {
 
               <Button
                 variant="outline"
-                onClick={() =>
-                  exportToCsv(
-                    `fines_${tab}`,
-                    ["ID", "Member", "Member ID", "Book", "Loan ID", "Due Date", "Returned Date", "Overdue Days", "Rate/Day", "Amount", "Status"],
-                    filteredFines.map((f) => [
-                      f.id, f.member, f.memberId, f.book, f.loanId,
-                      f.dueDate, f.returnedDate,
-                      String(f.overdueDays), String(f.ratePerDay),
-                      String(f.amount), f.status,
-                    ])
-                  )
-                }
+                onClick={handleExportFines}
               >
                 <Download size={13} />
                 Export Data
               </Button>
               <Button
                 className="whitespace-nowrap"
-                onClick={() => setIsManualFineOpen(true)}
-              >
+                  onClick={() => {
+                    setFormError("");
+                    setIsManualFineOpen(true);
+                  }}
+                >
                 <Plus size={14} />
                 Manual Fine Entry
               </Button>
@@ -232,16 +379,16 @@ export const FinesPage: React.FC = () => {
               </div>
             </div>
 
-            <DataTable headers={["ID", "Member", "Book Item", "Overdue", "Amount", "Status"]}>
+            <DataTable headers={["ID", "Member", "Book Item", "Reason", "Overdue", "Amount", "Status"]}>
               {isLoading ? (
                 <tr>
-                  <TableCell colSpan={6} center>
+                  <TableCell colSpan={7} center>
                     <div className="py-10 text-gray-400 italic">Loading fines...</div>
                   </TableCell>
                 </tr>
               ) : error ? (
                 <tr>
-                  <TableCell colSpan={6} center>
+                  <TableCell colSpan={7} center>
                     <div className="py-10 text-red-500 italic">{error}</div>
                   </TableCell>
                 </tr>
@@ -262,6 +409,9 @@ export const FinesPage: React.FC = () => {
                     </TableCell>
                     <TableCell center>
                       <span className="text-gray-800">{fine.book}</span>
+                    </TableCell>
+                    <TableCell center>
+                      <span className="text-gray-700">{fine.reason || "-"}</span>
                     </TableCell>
                     <TableCell center>
                       <span className={fine.overdueDays >= 10 ? "font-black text-red-600" : "text-gray-700"}>
@@ -297,6 +447,25 @@ export const FinesPage: React.FC = () => {
                 >
                   Previous
                 </button>
+                {paginationItems.map((item, idx) =>
+                  item === "ellipsis" ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={`page-${item}`}
+                      onClick={() => setPage(item)}
+                      className={`h-8 min-w-8 px-2 rounded border ${
+                        item === page
+                          ? "border-blue-200 bg-blue-50 text-blue-600 font-semibold"
+                          : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {item + 1}
+                    </button>
+                  ),
+                )}
                 <button
                   disabled={page >= totalPages - 1}
                   onClick={() => setPage(page + 1)}
@@ -367,31 +536,33 @@ export const FinesPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mt-5 rounded-lg border border-gray-100 p-4 space-y-3 bg-white">
-                <h3 className="text-[11px] uppercase tracking-wider font-bold text-gray-400">
-                  Calculation
-                </h3>
-                <p className="flex justify-between items-center text-sm text-gray-600">
-                  <span className="text-xs">Overdue Days</span>
-                  <span className="font-medium text-gray-900">
-                    {selectedFine.overdueDays} days
-                  </span>
-                </p>
-                <p className="flex justify-between items-center text-sm text-gray-600">
-                  <span className="text-xs">Rate</span>
-                  <span className="font-medium text-gray-900">
-                    Rs. {selectedFine.ratePerDay} / day
-                  </span>
-                </p>
-                <div className="border-t border-gray-100 pt-3 mt-1 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-900">
-                    Total Fine
-                  </span>
-                  <span className="text-lg font-bold text-blue-600">
-                    Rs. {selectedFine.amount.toFixed(2)}
-                  </span>
+              {selectedFine.reason === "overdue return" && (
+                <div className="mt-5 rounded-lg border border-gray-100 p-4 space-y-3 bg-white">
+                  <h3 className="text-[11px] uppercase tracking-wider font-bold text-gray-400">
+                    Calculation
+                  </h3>
+                  <p className="flex justify-between items-center text-sm text-gray-600">
+                    <span className="text-xs">Overdue Days</span>
+                    <span className="font-medium text-gray-900">
+                      {selectedFine.overdueDays} days
+                    </span>
+                  </p>
+                  <p className="flex justify-between items-center text-sm text-gray-600">
+                    <span className="text-xs">Rate</span>
+                    <span className="font-medium text-gray-900">
+                      Rs. {selectedFine.ratePerDay} / day
+                    </span>
+                  </p>
+                  <div className="border-t border-gray-100 pt-3 mt-1 flex justify-between items-center">
+                    <span className="text-sm font-semibold text-gray-900">
+                      Total Fine
+                    </span>
+                    <span className="text-lg font-bold text-blue-600">
+                      Rs. {selectedFine.amount.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="mt-6">
                 <button
@@ -414,7 +585,10 @@ export const FinesPage: React.FC = () => {
 
       <Modal
         isOpen={isManualFineOpen}
-        onClose={() => setIsManualFineOpen(false)}
+        onClose={() => {
+          setFormError("");
+          setIsManualFineOpen(false);
+        }}
         title="Manual Fine Entry"
         icon={<Receipt size={18} />}
         variant="branded"
@@ -428,42 +602,43 @@ export const FinesPage: React.FC = () => {
             >
               Cancel
             </Button>
-            <Button
-              onClick={() => setIsManualFineOpen(false)}
-            >
-              Issue Fine
+            <Button onClick={handleIssueFine} disabled={isSubmitting}>
+              {isSubmitting ? "Processing..." : "Issue Fine"}
             </Button>
           </div>
         }
       >
         <div className="space-y-5 py-2">
+          {formError && <div className="text-red-600 bg-red-50 p-2 rounded text-xs">{formError}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <Input
-              label="Member ID *"
-              placeholder="e.g. M-5021"
+              label="Copy ID *"
+              placeholder="e.g. CP-120 or 120"
               labelClassName="text-xs font-semibold text-gray-700"
               className="h-10 text-sm"
+              value={manualFineForm.copyId}
+              onChange={(e) => setManualFineForm(prev => ({ ...prev, copyId: e.target.value }))}
             />
-            <Input
-              label="Copy ID / Loan ID *"
-              placeholder="e.g. L-8820"
-              labelClassName="text-xs font-semibold text-gray-700"
-              className="h-10 text-sm"
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <Input
               label="Fine Amount (Rs.) *"
               placeholder="e.g. 100"
               type="number"
               labelClassName="text-xs font-semibold text-gray-700"
               className="h-10 text-sm"
+              value={manualFineForm.amount}
+              onChange={(e) => setManualFineForm(prev => ({ ...prev, amount: e.target.value }))}
             />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="flex flex-col space-y-2">
               <label className="text-xs font-semibold text-gray-700">
                 Reason for Fine
               </label>
-              <select className="h-10 border border-gray-300 rounded-md px-3 text-sm text-gray-900 w-full focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 bg-white">
+              <select
+                className="h-10 border border-gray-300 rounded-md px-3 text-sm text-gray-900 w-full focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 bg-white"
+                value={manualFineForm.reason}
+                onChange={(e) => setManualFineForm(prev => ({ ...prev, reason: e.target.value }))}
+              >
                 <option>Overdue Return</option>
                 <option>Book Damage</option>
                 <option>Lost Book</option>
@@ -471,17 +646,21 @@ export const FinesPage: React.FC = () => {
               </select>
             </div>
           </div>
-          <div>
-            <div className="flex flex-col space-y-2">
-              <label className="text-xs font-semibold text-gray-700">
-                Additional Comments
-              </label>
-              <textarea
-                className="w-full border border-gray-300 rounded-md p-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 min-h-[80px]"
-                placeholder="Any special notes regarding this fine..."
-              ></textarea>
+          {manualFineForm.reason === "Other" && (
+            <div>
+              <div className="flex flex-col space-y-2">
+                <label className="text-xs font-semibold text-gray-700">
+                  Additional Comments
+                </label>
+                <textarea
+                  className="w-full border border-gray-300 rounded-md p-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 min-h-[80px]"
+                  placeholder="Any special notes regarding this fine..."
+                  value={manualFineForm.comments}
+                  onChange={(e) => setManualFineForm(prev => ({ ...prev, comments: e.target.value }))}
+                ></textarea>
+              </div>
             </div>
-          </div>
+          )}
           <p className="text-xs text-gray-500 pt-2 border-t border-gray-100">
             Fields marked with * are mandatory to issue a fine.
           </p>

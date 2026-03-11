@@ -141,34 +141,34 @@ export const ReportsPage: React.FC = () => {
                           isLoading || !data?.topCategories
                             ? "#f3f4f6"
                             : (() => {
-                              let currentPos = 0;
-                              const colors = [
-                                "#2563eb",
-                                "#a855f7",
-                                "#4ade80",
-                                "#fb923c",
-                                "#ec4899",
-                                "#94a3b8",
-                              ];
-                              const totalIssues = data.topCategories.reduce(
-                                (sum: number, cat: any) => sum + cat.count,
-                                0,
-                              );
-                              const segments = data.topCategories.map(
-                                (cat: any, i: number) => {
-                                  const percent =
-                                    totalIssues > 0
-                                      ? (cat.count / totalIssues) * 100
-                                      : 0;
-                                  const start = currentPos;
-                                  currentPos += percent;
-                                  const color = colors[i] || "#94a3b8";
-                                  return `${color} ${start}% ${currentPos}%`;
-                                },
-                              );
+                                let currentPos = 0;
+                                const colors = [
+                                  "#2563eb",
+                                  "#a855f7",
+                                  "#4ade80",
+                                  "#fb923c",
+                                  "#ec4899",
+                                  "#94a3b8",
+                                ];
+                                const totalIssues = data.topCategories.reduce(
+                                  (sum: number, cat: any) => sum + cat.count,
+                                  0,
+                                );
+                                const segments = data.topCategories.map(
+                                  (cat: any, i: number) => {
+                                    const percent =
+                                      totalIssues > 0
+                                        ? (cat.count / totalIssues) * 100
+                                        : 0;
+                                    const start = currentPos;
+                                    currentPos += percent;
+                                    const color = colors[i] || "#94a3b8";
+                                    return `${color} ${start}% ${currentPos}%`;
+                                  },
+                                );
 
-                              return `conic-gradient(${segments.join(", ") || "#f3f4f6 0% 100%"})`;
-                            })(),
+                                return `conic-gradient(${segments.join(", ") || "#f3f4f6 0% 100%"})`;
+                              })(),
                       }}
                     />
                     <div className="absolute inset-[22px] bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
@@ -293,8 +293,8 @@ export const ReportsPage: React.FC = () => {
                     percent={
                       data?.collectedFines + data?.pendingFines > 0
                         ? (data.collectedFines /
-                          (data.collectedFines + data.pendingFines)) *
-                        100
+                            (data.collectedFines + data.pendingFines)) *
+                          100
                         : 0
                     }
                     color="bg-blue-600"
@@ -305,8 +305,8 @@ export const ReportsPage: React.FC = () => {
                     percent={
                       data?.collectedFines + data?.pendingFines > 0
                         ? (data.pendingFines /
-                          (data.collectedFines + data.pendingFines)) *
-                        100
+                            (data.collectedFines + data.pendingFines)) *
+                          100
                         : 0
                     }
                     color="bg-orange-500"
@@ -387,7 +387,7 @@ export const ReportsPage: React.FC = () => {
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
         onApply={handleApplyFilter}
-        initialMonth={reportDate.month}
+        initialMonth={reportDate.month - 1}
         initialYear={reportDate.year}
       />
     </MainLayout>
