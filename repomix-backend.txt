@@ -1,0 +1,4487 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+lms/
+  .mvn/
+    wrapper/
+      maven-wrapper.properties
+  src/
+    main/
+      java/
+        com/
+          example/
+            lms/
+              config/
+                AppConfig.java
+                CorsConfig.java
+                OpenAPIconfig.java
+              controller/
+                AuthController.java
+                BookController.java
+                CategoryController.java
+                CopyController.java
+                DashboardController.java
+                FineController.java
+                HomeController.java
+                LoanController.java
+                MemberController.java
+                ReportController.java
+              dto/
+                BookRequest.java
+                BookResponse.java
+                CategoryCountResponse.java
+                CategoryRequest.java
+                CategoryResponse.java
+                ChangePasswordRequest.java
+                CopyAvailabilityResponse.java
+                CopyBulkRequest.java
+                CopyRequest.java
+                CopyResponse.java
+                CreateMemberRequest.java
+                DashboardStatsResponse.java
+                FineRequest.java
+                FineResponse.java
+                LoanRequest.java
+                LoanResponse.java
+                LoanUpdateRequest.java
+                LoginRequest.java
+                LoginResponse.java
+                MemberResponse.java
+                ReportResponse.java
+                UpdateMemberRequest.java
+              entity/
+                Book.java
+                BookCategory.java
+                BookCategoryId.java
+                Category.java
+                Copy.java
+                Fine.java
+                Loan.java
+                Member.java
+              exception/
+                InvalidCredentialsException.java
+              repository/
+                BookCategoryRepository.java
+                BookRepository.java
+                CategoryRepository.java
+                CopyAvailabilityProjection.java
+                CopyRepository.java
+                FineRepository.java
+                LoanRepository.java
+                MemberRepository.java
+              security/
+                CustomUserDetailsService.java
+                JwtFilter.java
+                JwtUtil.java
+                SecurityConfig.java
+              service/
+                AuthService.java
+                AuthServiceImpl.java
+                BookInfoService.java
+                BookInfoServiceImpl.java
+                BookService.java
+                BookServiceImpl.java
+                CategoryService.java
+                CopyService.java
+                CopyServiceImpl.java
+                DashboardService.java
+                DashboardServiceImpl.java
+                EmailService.java
+                EmailServiceImpl.java
+                FineService.java
+                FineServiceImpl.java
+                LoanService.java
+                LoanServiceImpl.java
+                MemberService.java
+                MemberServiceImpl.java
+                ReportService.java
+                ReportServiceImpl.java
+              util/
+                PasswordUtil.java
+              LmsApplication.java
+      resources/
+        application.properties
+    test/
+      java/
+        com/
+          example/
+            lms/
+              LmsApplicationTests.java
+  .gitattributes
+  .gitignore
+  HELP.md
+  mvnw
+  mvnw.cmd
+  pom.xml
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="lms/.mvn/wrapper/maven-wrapper.properties">
+wrapperVersion=3.3.4
+distributionType=only-script
+distributionUrl=https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.12/apache-maven-3.9.12-bin.zip
+</file>
+
+<file path="lms/src/main/java/com/example/lms/config/AppConfig.java">
+package com.example.lms.config;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
+@Configuration
+public class AppConfig {
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/config/CorsConfig.java">
+package com.example.lms.config;
+
+import java.util.List;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+@Configuration
+public class CorsConfig {
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173"
+        ));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/config/OpenAPIconfig.java">
+package com.example.lms.config;
+
+import io.swagger.v3.oas.models.*;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class OpenAPIconfig {
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+
+        final String securitySchemeName = "bearerAuth";
+
+        return new OpenAPI()
+                .info(new Info()
+                        .title("LMS API")
+                        .version("1.0"))
+                .addSecurityItem(new SecurityRequirement()
+                        .addList(securitySchemeName))
+                .components(new Components()
+                        .addSecuritySchemes(securitySchemeName,
+                                new SecurityScheme()
+                                        .name(securitySchemeName)
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")
+                        )
+                );
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/controller/AuthController.java">
+package com.example.lms.controller;
+import com.example.lms.dto.LoginRequest;
+import com.example.lms.dto.LoginResponse;
+import com.example.lms.service.AuthService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthService authService;
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req) {
+        return ResponseEntity.ok(authService.login(req));
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/controller/BookController.java">
+package com.example.lms.controller;
+
+import com.example.lms.dto.BookRequest;
+import com.example.lms.dto.BookResponse;
+import com.example.lms.service.BookService;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("v1/books")
+public class BookController {
+
+    private final BookService service;
+
+    public BookController(BookService service) {
+        this.service = service;
+    }
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
+    public List<BookResponse> getBooks(@RequestParam(required = false) Integer id,
+                                       @RequestParam(required = false) String isbn,
+                                       @RequestParam(required = false) String title,
+                                        @RequestParam(required = false) String author,
+                                        @RequestParam(required = false) String category,
+                                       @RequestParam(defaultValue = "false") boolean availableOnly) {
+        return service.getBooks(id, isbn, title, author, category, availableOnly);
+    }
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public BookResponse create(@RequestBody BookRequest req) {
+        return service.create(req);
+    }
+
+  
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public BookResponse update(@PathVariable Integer id,
+                               @RequestBody BookRequest req) {
+        return service.update(id, req);
+    }
+
+   
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void delete(@PathVariable Integer id) {
+        service.delete(id);
+    }
+    
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/controller/CategoryController.java">
+package com.example.lms.controller;
+
+import com.example.lms.dto.CategoryRequest;
+import com.example.lms.dto.CategoryResponse;
+import com.example.lms.service.CategoryService;
+import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("v1/categories")
+public class CategoryController {
+
+    private final CategoryService categoryService;
+
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
+    public CategoryResponse create(@RequestBody CategoryRequest categoryRequest) {
+        return categoryService.create(categoryRequest);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public CategoryResponse update(@PathVariable Integer id, @RequestBody CategoryRequest categoryRequest) {
+        return categoryService.update(id, categoryRequest);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
+    public Page<CategoryResponse> getCategories(@RequestParam(required = false) Integer id,
+                                                @RequestParam(defaultValue = "0") Integer page,
+                                                @RequestParam(defaultValue = "10") Integer size) {
+        return categoryService.getCategories(id, page, size);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Integer id) {
+        categoryService.delete(id);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/controller/CopyController.java">
+package com.example.lms.controller;
+import com.example.lms.dto.CopyRequest;
+import com.example.lms.dto.CopyResponse;
+import com.example.lms.entity.Copy;
+import com.example.lms.service.CopyService;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("v1/copies")
+public class CopyController {
+
+    private final CopyService copyService;
+
+    public CopyController(CopyService copyService) {
+        this.copyService = copyService;
+    }
+
+    private CopyResponse toResponse(Copy c) {
+        CopyResponse r = new CopyResponse();
+        r.setCopyId(c.getCopy_id());
+        r.setBookId(c.getBook().getBook_id());
+        r.setStatus(c.getStatus());
+        r.setCreatedAt(c.getCreatedAt());
+        return r;
+    }
+
+    
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<CopyResponse> create(@RequestBody CopyRequest req) {
+        return copyService.createCopies(req)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<CopyResponse> getCopies(@RequestParam(required = false) Integer id,
+                                        @RequestParam(required = false) Integer bookId,
+                                        @RequestParam(required = false) String status) {
+        return copyService.getCopies(id, bookId, status)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void delete(@PathVariable Integer id) {
+        copyService.delete(id);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/controller/DashboardController.java">
+package com.example.lms.controller;
+
+import com.example.lms.dto.DashboardStatsResponse;
+import com.example.lms.dto.CategoryCountResponse;
+import com.example.lms.dto.LoanResponse;
+import com.example.lms.service.DashboardService;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import java.util.List;
+
+@RestController
+@RequestMapping("v1/dashboard")
+public class DashboardController {
+
+    private final DashboardService dashboardService;
+
+    public DashboardController(DashboardService dashboardService) {
+        this.dashboardService = dashboardService;
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/stats")
+    public DashboardStatsResponse getStats() {
+        return dashboardService.getStats();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/categories")
+    public List<CategoryCountResponse> getCategoryCounts() {
+        return dashboardService.getCategoryCounts();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/priority-followups")
+    public List<LoanResponse> getPriorityFollowUps() {
+        return dashboardService.getPriorityFollowUps();
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/controller/FineController.java">
+package com.example.lms.controller;
+
+import com.example.lms.dto.FineRequest;
+import com.example.lms.dto.FineResponse;
+import org.springframework.security.core.Authentication;
+import com.example.lms.service.FineService;
+import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("v1/fines")
+
+public class FineController {
+
+    private final FineService fineService;
+
+    public FineController(FineService fineService) {
+        this.fineService = fineService;
+    }
+
+    @PutMapping("/{id}/mark-paid")
+    @PreAuthorize("hasRole('ADMIN')")
+    public FineResponse markPaid(@PathVariable Integer id) {
+        return fineService.markFinePaid(id);
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public FineResponse create(@RequestBody FineRequest request) {
+        return fineService.createFine(request);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public FineResponse update(@PathVariable Integer id,
+            @RequestBody FineRequest request) {
+        return fineService.updateFine(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void delete(@PathVariable Integer id) {
+        fineService.deleteFine(id);
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
+    public Page<FineResponse> getFines(@RequestParam(name = "id", required = false) Integer id,
+            @RequestParam(name = "memberId", required = false) Integer memberId,
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "page", defaultValue = "0") Integer page,
+            @RequestParam(name = "size", defaultValue = "10") Integer size,
+            Authentication authentication) {
+        Integer requesterMemberId = (Integer) authentication.getPrincipal();
+        boolean isAdmin = authentication.getAuthorities()
+                .stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+
+        return fineService.getFines(id, memberId, status, requesterMemberId, isAdmin, page, size);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/controller/HomeController.java">
+//given an isbm get the book details from open library api and return the details as a response
+package com.example.lms.controller;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
+import java.util.Map;
+import java.util.List;
+@RestController
+@RequestMapping("v1/books")
+public class HomeController {
+
+    private final RestTemplate restTemplate;
+
+    public HomeController(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
+    @GetMapping("/isbn/{isbn}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void getBookByIsbn(@PathVariable String isbn) {
+
+        String url = "https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn;
+
+        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+
+        if (response == null || ((List<?>) response.get("items")) == null) {
+            throw new RuntimeException("No book found for ISBN: " + isbn);
+        }
+
+        System.out.println(response);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/controller/LoanController.java">
+package com.example.lms.controller;
+
+import com.example.lms.dto.LoanRequest;
+import com.example.lms.dto.LoanResponse;
+import com.example.lms.dto.LoanUpdateRequest;
+import com.example.lms.service.LoanService;
+
+import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("v1/loans")
+public class LoanController {
+
+    private final LoanService loanService;
+
+    public LoanController(LoanService loanService) {
+        this.loanService = loanService;
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public LoanResponse createLoan(@RequestBody LoanRequest request) {
+        return loanService.createLoan(request);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public LoanResponse updateLoan(@PathVariable Integer id,
+            @RequestBody LoanUpdateRequest request) {
+        return loanService.updateLoan(id, request);
+    }
+
+    @PutMapping("/{id}/return")
+    @PreAuthorize("hasRole('ADMIN')")
+    public LoanResponse returnBook(@PathVariable Integer id) {
+        return loanService.returnBook(id);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteLoan(@PathVariable Integer id) {
+        loanService.deleteLoan(id);
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
+    public Page<LoanResponse> getLoans(@RequestParam(name = "id", required = false) Integer id,
+            @RequestParam(name = "memberId", required = false) Integer memberId,
+            @RequestParam(name = "overdue", required = false, defaultValue = "false") Boolean overdue,
+            @RequestParam(name = "page", defaultValue = "0") Integer page,
+            @RequestParam(name = "size", defaultValue = "10") Integer size,
+            Authentication authentication) {
+        Integer requesterMemberId = (Integer) authentication.getPrincipal();
+        boolean isAdmin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return loanService.getLoans(id, memberId, overdue, requesterMemberId, isAdmin, page, size);
+    }
+
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/controller/MemberController.java">
+package com.example.lms.controller;
+
+import com.example.lms.dto.*;
+import com.example.lms.entity.Member;
+import com.example.lms.service.MemberService;
+import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("v1/members")
+public class MemberController {
+
+    private final MemberService service;
+
+    public MemberController(MemberService service) {
+        this.service = service;
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
+    public Member create(@RequestBody CreateMemberRequest req,
+            Authentication auth) {
+
+        return service.createMember(req, true);
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal")
+    public Member update(@PathVariable Integer id,
+            @RequestBody UpdateMemberRequest req,
+            Authentication auth) {
+
+        Integer requesterId = (Integer) auth.getPrincipal();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        return service.updateMember(id, req, requesterId, isAdmin);
+    }
+
+    @PutMapping("/{id}/password")
+    @PreAuthorize("#id == authentication.principal")
+    public void changePassword(@PathVariable Integer id,
+            @RequestBody ChangePasswordRequest req) {
+
+        service.changePassword(id, req);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}/changestatus")
+    @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
+    public void changestatus(@PathVariable Integer id) {
+        service.changestatus(id);
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal")
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Integer id,
+            Authentication auth) {
+
+        Integer requesterId = (Integer) auth.getPrincipal();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        service.deleteMember(id, requesterId, isAdmin);
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
+    public Page<MemberResponse> getMembers(@RequestParam(required = false) Integer id,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String name,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            Authentication auth) {
+        Integer requesterId = (Integer) auth.getPrincipal();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        return service.getMembers(id, status, name, requesterId, isAdmin, page, size);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/next-id")
+    public Integer getNextId() {
+        Integer maxId = service.getNextMemberId();
+        return (maxId == null ? 0 : maxId) + 1;
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/controller/ReportController.java">
+package com.example.lms.controller;
+
+import com.example.lms.dto.ReportResponse;
+import com.example.lms.service.ReportService;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import java.time.LocalDate;
+
+@RestController
+@RequestMapping("v1/reports")
+public class ReportController {
+
+    private final ReportService reportService;
+
+    public ReportController(ReportService reportService) {
+        this.reportService = reportService;
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
+    public ReportResponse getReport(
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year) {
+
+        LocalDate now = LocalDate.now();
+        int m = month != null ? month : now.getMonthValue();
+        int y = year != null ? year : now.getYear();
+
+        return reportService.getMonthlyReport(m, y);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/BookRequest.java">
+package com.example.lms.dto;
+
+public class BookRequest {
+
+    private String title;
+    private String isbn;
+    private String publisher;
+    private Integer publish_year;
+    private Integer edition;
+    private String author;
+    private java.util.List<String> categories;
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getIsbn() {
+        return isbn;
+    }
+
+    public void setIsbn(String isbn) {
+        this.isbn = isbn;
+    }
+
+    public String getPublisher() {
+        return publisher;
+    }
+
+    public void setPublisher(String publisher) {
+        this.publisher = publisher;
+    }
+
+    public Integer getPublish_year() {
+        return publish_year;
+    }
+
+    public void setPublish_year(Integer publish_year) {
+        this.publish_year = publish_year;
+    }
+
+    public Integer getEdition() {
+        return edition;
+    }
+
+    public void setEdition(Integer edition) {
+        this.edition = edition;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+
+    public java.util.List<String> getCategories() {
+        return categories;
+    }
+
+    public void setCategories(java.util.List<String> categories) {
+        this.categories = categories;
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/BookResponse.java">
+package com.example.lms.dto;
+
+public class BookResponse {
+
+    private Integer book_id;
+    private String title;
+    private String isbn;
+    private String publisher;
+    private Integer publish_year;
+    private Integer edition;
+    private String author;
+    private String description;
+    private java.time.LocalDate createdAt;
+    private java.util.List<String> categories;
+
+    public Integer getBook_id() { return book_id; }
+    public void setBook_id(Integer book_id) { this.book_id = book_id; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getIsbn() { return isbn; }
+    public void setIsbn(String isbn) { this.isbn = isbn; }
+
+    public String getPublisher() { return publisher; }
+    public void setPublisher(String publisher) { this.publisher = publisher; }
+
+    public Integer getPublish_year() { return publish_year; }
+    public void setPublish_year(Integer publish_year) { this.publish_year = publish_year; }
+
+    public Integer getEdition() { return edition; }
+    public void setEdition(Integer edition) { this.edition = edition; }
+
+    public String getAuthor() { return author; }
+    public void setAuthor(String author) { this.author = author; }
+
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public java.time.LocalDate getCreatedAt() { return createdAt; }
+    public void setCreatedAt(java.time.LocalDate createdAt) { this.createdAt = createdAt; }
+
+    public java.util.List<String> getCategories() { return categories; }
+    public void setCategories(java.util.List<String> categories) { this.categories = categories; }
+
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/CategoryCountResponse.java">
+package com.example.lms.dto;
+
+public record CategoryCountResponse(
+        String category,
+        long count) {
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/CategoryRequest.java">
+package com.example.lms.dto;
+
+public class CategoryRequest {
+
+    private String category_name;
+
+    public String getCategory_name() {
+        return category_name;
+    }
+
+    public void setCategory_name(String category_name) {
+        this.category_name = category_name;
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/CategoryResponse.java">
+package com.example.lms.dto;
+
+public class CategoryResponse {
+
+    private Integer category_id;
+    private String category_name;
+
+    public Integer getCategory_id() {
+        return category_id;
+    }
+
+    public void setCategory_id(Integer category_id) {
+        this.category_id = category_id;
+    }
+
+    public String getCategory_name() {
+        return category_name;
+    }
+
+    public void setCategory_name(String category_name) {
+        this.category_name = category_name;
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/ChangePasswordRequest.java">
+package com.example.lms.dto;
+
+public class ChangePasswordRequest {
+
+    private String oldPassword;
+    private String newPassword;
+
+    public String getOldPassword() { return oldPassword; }
+    public void setOldPassword(String oldPassword) { this.oldPassword = oldPassword; }
+
+    public String getNewPassword() { return newPassword; }
+    public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/CopyAvailabilityResponse.java">
+package com.example.lms.dto;
+
+public class CopyAvailabilityResponse {
+
+    private Integer bookId;
+    private long available;
+    private long unavailable;
+
+    public Integer getBookId() { return bookId; }
+    public void setBookId(Integer bookId) { this.bookId = bookId; }
+
+    public long getAvailable() { return available; }
+    public void setAvailable(long available) { this.available = available; }
+
+    public long getUnavailable() { return unavailable; }
+    public void setUnavailable(long unavailable) { this.unavailable = unavailable; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/CopyBulkRequest.java">
+package com.example.lms.dto;
+
+public class CopyBulkRequest {
+
+    private int count;
+
+    public int getCount() { return count; }
+    public void setCount(int count) { this.count = count; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/CopyRequest.java">
+package com.example.lms.dto;
+
+public class CopyRequest {
+
+    private Integer bookId;
+    private int count;
+
+    public Integer getBookId() { return bookId; }
+    public void setBookId(Integer bookId) { this.bookId = bookId; }
+    
+    public int getCount() { return count; }
+    public void setCount(int count) { this.count = count; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/CopyResponse.java">
+package com.example.lms.dto;
+
+public class CopyResponse {
+
+    private Integer copyId;
+    private Integer bookId;
+    private String status;
+    private java.time.OffsetDateTime createdAt;
+
+    public Integer getCopyId() { return copyId; }
+    public void setCopyId(Integer copyId) { this.copyId = copyId; }
+
+    public Integer getBookId() { return bookId; }
+    public void setBookId(Integer bookId) { this.bookId = bookId; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public java.time.OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(java.time.OffsetDateTime createdAt) { this.createdAt = createdAt; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/CreateMemberRequest.java">
+package com.example.lms.dto;
+
+public class CreateMemberRequest {
+
+    private String name;
+    private String email;
+    private String phone;
+    private String address;
+    private String role; 
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/DashboardStatsResponse.java">
+package com.example.lms.dto;
+
+public record DashboardStatsResponse(
+        long totalBooks,
+        long availableCopies,
+        long issuedBooks,
+        long overdueLoans,
+        double unpaidFines) {
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/FineRequest.java">
+package com.example.lms.dto;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+public class FineRequest {
+    private Integer loanId;
+    private BigDecimal amount;
+    private BigDecimal paidAmount;
+    private String status;
+    private LocalDate paidDate;
+    private String reason;
+
+    public Integer getLoanId() { return loanId; }
+    public void setLoanId(Integer loanId) { this.loanId = loanId; }
+    public BigDecimal getAmount() { return amount; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
+    public BigDecimal getPaidAmount() { return paidAmount; }
+    public void setPaidAmount(BigDecimal paidAmount) { this.paidAmount = paidAmount;}
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public LocalDate getPaidDate() { return paidDate; }
+    public void setPaidDate(LocalDate paidDate) { this.paidDate = paidDate;}
+
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/FineResponse.java">
+package com.example.lms.dto;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+public class FineResponse {
+
+    private Integer fineId;
+    private Integer loanId;
+    private Integer memberId;
+    private String memberName;
+    private BigDecimal amount;
+    private BigDecimal paidAmount;
+    private String status;
+    private LocalDate paidDate;
+    private String reason;
+    private java.time.OffsetDateTime createdAt;
+
+    public FineResponse(Integer fineId,
+                        Integer loanId,
+                        Integer memberId,
+                        String memberName,
+                        BigDecimal amount,
+                        BigDecimal paidAmount,
+                        String status,
+                        LocalDate paidDate,
+                        String reason,
+                        java.time.OffsetDateTime createdAt) {
+        this.fineId = fineId;
+        this.loanId = loanId;
+        this.memberId = memberId;
+        this.memberName = memberName;
+        this.amount = amount;
+        this.paidAmount = paidAmount;
+        this.status = status;
+        this.paidDate = paidDate;
+        this.reason = reason;
+        this.createdAt = createdAt;
+    }
+
+    
+    public Integer getFineId() { return fineId; }
+    public Integer getLoanId() { return loanId; }
+    public Integer getMemberId() { return memberId; }
+    public String getMemberName() { return memberName; }
+    public BigDecimal getAmount() { return amount; }
+    public BigDecimal getPaidAmount() { return paidAmount; }
+    public String getStatus() { return status; }
+    public LocalDate getPaidDate() { return paidDate; }
+    public String getReason() { return reason; }
+    public java.time.OffsetDateTime getCreatedAt() { return createdAt; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/LoanRequest.java">
+package com.example.lms.dto;
+
+import java.time.LocalDate;
+
+public class LoanRequest {
+
+    private Integer copyId;
+    private Integer memberId;
+    private LocalDate issueDate;
+    //private LocalDate returnDate;
+    private String remarks;
+
+    public Integer getCopyId() { return copyId; }
+    public void setCopyId(Integer copyId) { this.copyId = copyId; }
+    public Integer getMemberId() { return memberId; }
+    public void setMemberId(Integer memberId) { this.memberId = memberId; }
+    public LocalDate getIssueDate() { return issueDate; }
+    // public void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }
+    // public LocalDate getReturnDate() { return returnDate; }
+    // public void setReturnDate(LocalDate returnDate) { this.returnDate = returnDate; }
+    // public LocalDate getDueDate() { return issueDate != null ? issueDate.plusDays(14) : null; }
+    public String getRemarks() { return remarks; }
+    public void setRemarks(String remarks) { this.remarks = remarks; }
+
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/LoanResponse.java">
+package com.example.lms.dto;
+
+import java.time.LocalDate;
+
+public class LoanResponse {
+
+    private Integer loanId;
+    private Integer copyId;
+    private String bookTitle;
+    private Integer memberId;
+    private String memberName;
+    private LocalDate issueDate;
+    private LocalDate dueDate;
+    private LocalDate returnDate;
+    private String remarks;
+    private java.time.OffsetDateTime createdAt;
+
+    
+
+    public LoanResponse(Integer loanId, Integer copyId, String bookTitle,
+                        Integer memberId, String memberName,
+                        LocalDate issueDate, LocalDate dueDate,
+                        LocalDate returnDate, String remarks,
+                        java.time.OffsetDateTime createdAt) {
+        this.loanId = loanId;
+        this.copyId = copyId;
+        this.bookTitle = bookTitle;
+        this.memberId = memberId;
+        this.memberName = memberName;
+        this.issueDate = issueDate;
+        this.dueDate = dueDate;
+        this.returnDate = returnDate;
+        this.remarks = remarks;
+        this.createdAt = createdAt;
+    }
+
+    
+    public Integer getLoanId() { return loanId; }
+    public Integer getCopyId() { return copyId; }
+    public String getBookTitle() { return bookTitle; }
+    public Integer getMemberId() { return memberId; }
+    public String getMemberName() { return memberName; }
+    public LocalDate getIssueDate() { return issueDate; }
+    public LocalDate getDueDate() { return dueDate; }
+    public LocalDate getReturnDate() { return returnDate; }
+    public String getRemarks() { return remarks; }
+    public java.time.OffsetDateTime getCreatedAt() { return createdAt; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/LoanUpdateRequest.java">
+package com.example.lms.dto;
+import java.time.LocalDate;
+public class LoanUpdateRequest {
+    private Integer copyId;
+    private Integer memberId;
+    private LocalDate issueDate;
+    private LocalDate returnDate;
+    private LocalDate dueDate;
+    private String remarks;
+    public Integer getCopyId() { return copyId; }
+    public void setCopyId(Integer copyId) { this.copyId = copyId; }
+    public Integer getMemberId() { return memberId; }
+    public void setMemberId(Integer memberId) { this.memberId = memberId; }
+    public LocalDate getIssueDate() { return issueDate; }
+    public void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }
+    public LocalDate getReturnDate() { return returnDate; }
+    public void setReturnDate(LocalDate returnDate) { this.returnDate = returnDate; }
+    public LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate;}    public String getRemarks() { return remarks; }
+    public void setRemarks(String remarks) { this.remarks = remarks; }}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/LoginRequest.java">
+package com.example.lms.dto;
+
+public class LoginRequest {
+    private String email;
+    private String password;
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/LoginResponse.java">
+package com.example.lms.dto;
+
+public class LoginResponse {
+    private String token;
+
+    public LoginResponse(String token) {
+        this.token = token;
+    }
+
+    public String getToken() {
+        return token;
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/MemberResponse.java">
+package com.example.lms.dto;
+
+public class MemberResponse {
+
+    private Integer id;
+    private String name;
+    private String email;
+    private String phone;
+    private String address;
+    private String role;
+    private String status;
+    private java.time.LocalDate membershipStart;
+    private java.time.LocalDate membershipEnd;
+
+    public MemberResponse(Integer id, String name, String email,
+                          String phone, String address,
+                          String role, String status,
+                          java.time.LocalDate membershipStart,
+                          java.time.LocalDate membershipEnd) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+        this.address = address;
+        this.role = role;
+        this.status = status;
+        this.membershipStart = membershipStart;
+        this.membershipEnd = membershipEnd;
+    }
+
+    public Integer getId() { return id; }
+    public String getName() { return name; }
+    public String getEmail() { return email; }
+    public String getPhone() { return phone; }
+    public String getAddress() { return address; }
+    public String getRole() { return role; }
+    public String getStatus() { return status; }
+    public java.time.LocalDate getMembershipStart() { return membershipStart; }
+    public java.time.LocalDate getMembershipEnd() { return membershipEnd; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/ReportResponse.java">
+package com.example.lms.dto;
+
+import java.util.List;
+
+public record ReportResponse(
+        int month,
+        int year,
+        long totalLoans,
+        long newMembers,
+        double totalFinesCollected,
+        double averageOverdueDays,
+        long overdueCount,
+        double collectedFines,
+        double pendingFines,
+        java.util.Map<String, Long> overdueDistribution,
+        java.util.List<CategoryCountResponse> topCategories,
+        double stockUtilization,
+        double returnRate) {
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/dto/UpdateMemberRequest.java">
+package com.example.lms.dto;
+
+public class UpdateMemberRequest {
+
+    private String name;
+    private String phone;
+    private String address;
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/entity/Book.java">
+package com.example.lms.entity;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.*;
+import java.time.LocalDate;
+
+@Entity
+@Table(name = "book")
+public class Book {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @Column(name = "book_id")
+    private Integer bookId;
+
+    @Column(nullable = false)
+    private String title;
+
+    @Column(nullable = false, unique = true)
+    private String isbn;
+
+    private String publisher;
+
+    private Integer publish_year;
+
+    private Integer edition;
+
+    private String author;
+    
+    @Column(length = 2000)
+    private String description;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDate createdAt;
+
+
+   
+    public Integer getBook_id() { return bookId; }
+    public void setBook_id(Integer book_id) { this.bookId = book_id; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getIsbn() { return isbn; }
+    public void setIsbn(String isbn) { this.isbn = isbn; }
+
+    public String getPublisher() { return publisher; }
+    public void setPublisher(String publisher) { this.publisher = publisher; }
+
+    public Integer getPublish_year() { return publish_year; }
+    public void setPublish_year(Integer publish_year) { this.publish_year = publish_year; }
+
+    public Integer getEdition() { return edition; }
+    public void setEdition(Integer edition) { this.edition = edition; }
+
+    public String getAuthor() { return author; }
+    public void setAuthor(String author) { this.author = author; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public LocalDate getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDate createdAt) { this.createdAt = createdAt; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/entity/BookCategory.java">
+package com.example.lms.entity;
+
+import jakarta.persistence.*;
+
+
+@Entity
+@Table(name = "book_category")
+@IdClass(BookCategoryId.class)
+public class BookCategory {
+
+    @Id
+    @Column(name = "book_id")
+    private Integer bookId;
+
+    @Id
+    @Column(name = "category_id")
+    private Integer categoryId;
+
+    public Integer getBookId() { return bookId; }
+    public void setBookId(Integer bookId) { this.bookId = bookId; }
+
+    public Integer getCategoryId() { return categoryId; }
+    public void setCategoryId(Integer categoryId) { this.categoryId = categoryId; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/entity/BookCategoryId.java">
+package com.example.lms.entity;
+
+import java.io.Serializable;
+import java.util.Objects;
+
+public class BookCategoryId implements Serializable {
+
+    private Integer bookId;
+    private Integer categoryId;
+
+    public BookCategoryId() {}
+
+    public BookCategoryId(Integer bookId, Integer categoryId) {
+        this.bookId = bookId;
+        this.categoryId = categoryId;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof BookCategoryId)) return false;
+        BookCategoryId that = (BookCategoryId) o;
+        return Objects.equals(bookId, that.bookId) &&
+               Objects.equals(categoryId, that.categoryId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(bookId, categoryId);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/entity/Category.java">
+package com.example.lms.entity;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "category")
+public class Category {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer category_id;
+
+    @Column(nullable = false, unique = true,name="category_name")
+    private String categoryName;
+
+    public Integer getCategory_id() { return category_id; }
+    public void setCategory_id(Integer category_id) { this.category_id = category_id; }
+
+    public String getCategory_name() { return categoryName; }
+    public void setCategory_name(String category_name) { this.categoryName = category_name; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/entity/Copy.java">
+package com.example.lms.entity;
+
+import jakarta.persistence.*;
+import java.time.OffsetDateTime;
+
+@Entity
+@Table(name = "copy")
+public class Copy {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer copy_id;
+
+    
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "book_id")
+    private Book book;
+
+    @Column(nullable = false)
+    private String status;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    public Integer getCopy_id() { return copy_id; }
+    public void setCopy_id(Integer copy_id) { this.copy_id = copy_id; }
+    public Integer getCopyId() { return copy_id; }
+    public void setCopyId(Integer copyId) { this.copy_id = copyId; }
+
+    public Book getBook() { return book; }
+    public void setBook(Book book) { this.book = book; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/entity/Fine.java">
+package com.example.lms.entity;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+
+@Entity
+@Table(name = "fine")
+public class Fine {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "fine_id")
+    private Integer fineId;
+
+    @OneToOne
+    @JoinColumn(name = "loan_id", unique = true)
+    private Loan loan;
+
+    @Column(nullable = false)
+    private BigDecimal amount;
+
+    @Column(name = "paid_amount")
+    private BigDecimal paidAmount = BigDecimal.ZERO;
+
+    @Column(nullable = false)
+    private String status = "unpaid"; 
+
+    @Column(name = "paid_date")
+    private LocalDate paidDate;
+
+    private String reason;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    public Integer getFineId() { return fineId; }
+    public void setFineId(Integer fineId) { this.fineId = fineId; }
+    public Loan getLoan() { return loan; }
+    public void setLoan(Loan loan) { this.loan = loan; }
+    public BigDecimal getAmount() { return amount; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
+    public BigDecimal getPaidAmount() { return paidAmount; }
+    public void setPaidAmount(BigDecimal paidAmount) { this.paidAmount = paidAmount; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public LocalDate getPaidDate() { return paidDate; }
+    public void setPaidDate(LocalDate paidDate) { this.paidDate = paidDate;}
+    
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
+
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/entity/Loan.java">
+package com.example.lms.entity;
+
+import jakarta.persistence.*;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+
+@Entity
+@Table(name = "loan")
+public class Loan {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "loan_id")
+    private Integer loanId;
+
+    @ManyToOne
+    @JoinColumn(name = "copy_id")
+    private Copy copy;
+
+    @ManyToOne
+    @JoinColumn(name = "member_id")
+    private Member member;
+
+    @Column(name = "issue_date")
+    private LocalDate issueDate;
+
+    @Column(name = "return_date")
+    private LocalDate returnDate;
+
+    @Column(name = "due_date")
+    private LocalDate dueDate;
+
+    private String remarks;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    
+    public Integer getLoanId() { return loanId; }
+    public void setLoanId(Integer loanId) { this.loanId = loanId; }
+    public Copy getCopy() { return copy; }
+    public void setCopy(Copy copy) { this.copy = copy; }
+    public Member getMember() { return member; }
+    public void setMember(Member member) { this.member = member; }
+    public LocalDate getIssueDate() { return issueDate; }
+    public void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate;}
+    public LocalDate getReturnDate() { return returnDate; }
+    public void setReturnDate(LocalDate returnDate) { this.returnDate = returnDate; }
+    public LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
+    
+    public String getRemarks() { return remarks; }
+    public void setRemarks(String remarks) { this.remarks = remarks; }
+
+    public OffsetDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/entity/Member.java">
+package com.example.lms.entity;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.*;
+import java.time.LocalDate;
+
+@Entity
+@Table(name = "member")
+public class Member {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)   
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY) 
+    @Column(name = "member_id")
+    private Integer memberId;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(unique = true)
+    private String email;
+
+    @Column(length = 20)
+    private String phone;
+
+    private String address;
+
+    @Column(name = "hashed_pwd", nullable = false)
+    private String hashedPwd;
+
+    @Column(nullable = false)
+    private String role="member";
+    @Column(nullable = false)
+    private String status = "active";
+
+    @Column(name = "membership_start", nullable = false, updatable = false)
+    private LocalDate membershipStart;
+
+    @Column(name = "membership_end")
+    private LocalDate membershipEnd;
+
+    public Member() {}
+
+    public Integer getMemberId() { return memberId; }
+    public void setMemberId(Integer memberId) { this.memberId = memberId; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+
+    public String getHashedPwd() { return hashedPwd; }
+    public void setHashedPwd(String hashedPwd) { this.hashedPwd = hashedPwd; }
+
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public LocalDate getMembershipStart() { return membershipStart; }
+    public void setMembershipStart(LocalDate membershipStart) { this.membershipStart = membershipStart; }
+
+    public LocalDate getMembershipEnd() { return membershipEnd; }
+    public void setMembershipEnd(LocalDate membershipEnd) { this.membershipEnd = membershipEnd; }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/exception/InvalidCredentialsException.java">
+package com.example.lms.exception;
+
+public class InvalidCredentialsException extends RuntimeException {
+    public InvalidCredentialsException(String message) {
+        super(message);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/repository/BookCategoryRepository.java">
+package com.example.lms.repository;
+
+import com.example.lms.entity.BookCategory;
+import com.example.lms.entity.BookCategoryId;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.util.List;
+
+public interface BookCategoryRepository extends JpaRepository<BookCategory, BookCategoryId> {
+
+    List<BookCategory> findByCategoryId(Integer categoryId);
+
+    List<BookCategory> findByBookId(Integer bookId);
+
+    @Query(value = """
+        SELECT c.category_name
+        FROM book_category bc
+        JOIN category c ON c.category_id = bc.category_id
+        WHERE bc.book_id = :bookId
+        ORDER BY bc.category_id ASC
+        """, nativeQuery = true)
+    List<String> findCategoryNamesByBookId(@Param("bookId") Integer bookId);
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/repository/BookRepository.java">
+package com.example.lms.repository;
+
+import com.example.lms.entity.Book;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface BookRepository extends JpaRepository<Book, Integer> {
+    List<Book> findByIsbnContainingIgnoreCase(String isbn);
+    List<Book> findByTitleContainingIgnoreCase(String title);
+    List<Book> findByAuthorContainingIgnoreCase(String author);
+    @Query(value = """
+       SELECT * FROM book
+       WHERE book_id IN (
+           SELECT bc.book_id
+           FROM book_category bc
+           JOIN category c ON c.category_id = bc.category_id
+           WHERE LOWER(c.category_name) LIKE LOWER(CONCAT('%', :categoryName, '%'))
+       )
+       """, nativeQuery = true)
+    List<Book> findByCategoryName(String categoryName);
+
+    @Query(value = """
+       SELECT bc.book_id, c.category_name
+       FROM book_category bc
+       JOIN category c ON c.category_id = bc.category_id
+       WHERE bc.book_id IN (:bookIds)
+       ORDER BY bc.book_id ASC, bc.category_id ASC
+       """, nativeQuery = true)
+    List<Object[]> findCategoryNamesByBookIds(@Param("bookIds") List<Integer> bookIds);
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/repository/CategoryRepository.java">
+package com.example.lms.repository;
+
+import com.example.lms.entity.Category;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.util.Optional;
+import java.util.List;
+
+public interface CategoryRepository extends JpaRepository<Category, Integer> {
+
+    Optional<Category> findByCategoryNameIgnoreCase(String name);
+
+    Page<Category> findByCategoryNameContainingIgnoreCase(String name, Pageable pageable);
+
+    @Query("SELECT new com.example.lms.dto.CategoryCountResponse(c.categoryName, COUNT(bc.bookId)) "
+            +
+            "FROM Category c JOIN BookCategory bc ON c.category_id = bc.categoryId " +
+            "GROUP BY c.categoryName ORDER BY COUNT(bc.bookId) DESC")
+    java.util.List<com.example.lms.dto.CategoryCountResponse> findCategoryCounts();
+
+    @Query("SELECT c.categoryName FROM Category c JOIN BookCategory bc ON c.category_id = bc.categoryId " +
+            "WHERE bc.bookId = :bookId ORDER BY bc.categoryId ASC")
+    List<String> findCategoryNamesByBookId(@Param("bookId") Integer bookId);
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/repository/CopyAvailabilityProjection.java">
+package com.example.lms.repository;
+
+public interface CopyAvailabilityProjection {
+    Integer getBookId();
+    long getAvailable();
+    long getUnavailable();
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/repository/CopyRepository.java">
+package com.example.lms.repository;
+
+import com.example.lms.entity.Copy;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface CopyRepository extends JpaRepository<Copy, Integer> {
+
+    // ✅ NEW: all copies of a book
+    List<Copy> findByBook_BookId(Integer bookId);
+
+    List<Copy> findByStatusIgnoreCase(String status);
+
+    List<Copy> findByBook_BookIdAndStatusIgnoreCase(Integer bookId, String status);
+
+    // ✅ NEW: count by status
+    long countByBook_BookIdAndStatus(Integer bookId, String status);
+
+    long countByStatusIgnoreCase(String status);
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/repository/FineRepository.java">
+package com.example.lms.repository;
+
+import com.example.lms.entity.Fine;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+import java.util.Optional;
+
+public interface FineRepository extends JpaRepository<Fine, Integer> {
+    Optional<Fine> findByLoan_LoanId(Integer loanId);
+
+    List<Fine> findByLoanMemberMemberId(Integer memberId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT f FROM Fine f WHERE f.loan.member.memberId = :memberId ORDER BY CASE WHEN f.status = 'unpaid' THEN 0 ELSE 1 END, f.createdAt DESC")
+    List<Fine> findByMemberIdSorted(Integer memberId);
+
+    List<Fine> findByStatusIgnoreCase(String status);
+
+    Page<Fine> findByLoanMemberMemberId(Integer memberId, Pageable pageable);
+
+    Page<Fine> findByStatusIgnoreCase(String status, Pageable pageable);
+
+    Page<Fine> findByLoanMemberMemberIdAndStatusIgnoreCase(Integer memberId, String status, Pageable pageable);
+
+    long countByStatusIgnoreCaseNot(String status);
+
+    @org.springframework.data.jpa.repository.Query("SELECT SUM(f.amount - COALESCE(f.paidAmount, 0)) FROM Fine f WHERE f.status <> 'paid'")
+    Double sumUnpaidFines();
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/repository/LoanRepository.java">
+package com.example.lms.repository;
+
+import com.example.lms.entity.Loan;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+import java.time.LocalDate;
+
+public interface LoanRepository extends JpaRepository<Loan, Integer> {
+    long countByMember_MemberIdAndReturnDateIsNull(Integer memberId);
+
+    boolean existsByMember_MemberIdAndCopy_Book_BookIdAndReturnDateIsNull(Integer memberId, Integer bookId);
+
+    Page<Loan> findByMember_MemberId(Integer memberId, Pageable pageable);
+
+    long countByReturnDateIsNullAndDueDateBefore(LocalDate date);
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/repository/MemberRepository.java">
+package com.example.lms.repository;
+
+import com.example.lms.entity.Member;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
+
+public interface MemberRepository extends JpaRepository<Member, Integer> {
+    Optional<Member> findByEmail(String email);
+
+    Page<Member> findByStatusIgnoreCase(String status, Pageable pageable);
+
+    Page<Member> findByNameContainingIgnoreCase(String name, Pageable pageable);
+
+    Page<Member> findByStatusIgnoreCaseAndNameContainingIgnoreCase(String status, String name, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("SELECT MAX(m.memberId) FROM Member m")
+    Integer findMaxId();
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/security/CustomUserDetailsService.java">
+package com.example.lms.security;
+
+import com.example.lms.entity.Member;
+import com.example.lms.repository.MemberRepository;
+import org.springframework.security.core.userdetails.*;
+import org.springframework.stereotype.Service;
+
+import java.util.Collections;
+
+@Service
+public class CustomUserDetailsService implements UserDetailsService {
+
+    private final MemberRepository repo;
+
+    public CustomUserDetailsService(MemberRepository repo) {
+        this.repo = repo;
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        Member m = repo.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        return new User(
+                m.getEmail(),
+                m.getHashedPwd(),
+                Collections.emptyList()
+        );
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/security/JwtFilter.java">
+package com.example.lms.security;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.List;
+
+public class JwtFilter extends OncePerRequestFilter {
+
+    private final JwtUtil jwtUtil;
+
+    public JwtFilter(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
+
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+
+            String token = authHeader.substring(7);
+
+            try {
+                
+                String role = jwtUtil.extractRole(token);
+                Integer member_id = jwtUtil.extractMemberId(token);
+                var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+
+                var auth = new UsernamePasswordAuthenticationToken(
+                        member_id,
+                        null,
+                        authorities
+                );
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+
+            } catch (Exception e) {
+                
+            }
+        }
+
+        filterChain.doFilter(request, response);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/security/JwtUtil.java">
+package com.example.lms.security;
+
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.stereotype.Component;
+
+import java.security.Key;
+import java.util.Date;
+
+@Component
+public class JwtUtil {
+
+    
+    private final String SECRET="libhub123123123123123123123123123123123123";
+    private final long EXPIRATION = 86400000; 
+
+    private Key getKey() {
+        return Keys.hmacShaKeyFor(SECRET.getBytes());
+    }
+
+    public String generateToken(String email, String role, Integer memberId) {
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("role", role)
+                .claim("memberId", memberId)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
+                .signWith(getKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    
+    public String extractEmail(String token) {
+        return extractAllClaims(token).getSubject();
+    }
+
+    
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
+    }
+
+    
+    public Integer extractMemberId(String token) {
+        return extractAllClaims(token).get("memberId", Integer.class);
+    }
+
+    
+    private Claims extractAllClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/security/SecurityConfig.java">
+package com.example.lms.security;
+
+import org.springframework.context.annotation.*;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@EnableMethodSecurity
+@Configuration
+public class SecurityConfig {
+    private final JwtUtil jwtUtil;
+
+    public SecurityConfig(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+    @Bean
+    public JwtFilter jwtFilter() {
+        return new JwtFilter(jwtUtil);
+    }
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/auth/login","/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .anyRequest().authenticated()
+            ).addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/AuthService.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.LoginRequest;
+import com.example.lms.dto.LoginResponse;
+
+public interface AuthService {
+    LoginResponse login(LoginRequest request);
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/AuthServiceImpl.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.LoginRequest;
+import com.example.lms.dto.LoginResponse;
+import com.example.lms.entity.Member;
+import com.example.lms.repository.MemberRepository;
+import com.example.lms.security.JwtUtil;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class AuthServiceImpl implements AuthService {
+
+    private final MemberRepository memberRepository;
+    private final JwtUtil jwtUtil;
+    private final BCryptPasswordEncoder passwordEncoder;
+
+    @Override
+    public LoginResponse login(LoginRequest request) {
+
+        Member member = memberRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(request.getPassword(), member.getHashedPwd())) {
+            throw new RuntimeException("Invalid password");
+        }
+
+        String token = jwtUtil.generateToken(
+                member.getEmail(),
+                member.getRole(),
+                member.getMemberId()
+        );
+
+        return new LoginResponse(token);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/BookInfoService.java">
+package com.example.lms.service;
+
+public interface BookInfoService {
+
+    String fetchDescriptionByIsbn(String isbn);
+
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/BookInfoServiceImpl.java">
+package com.example.lms.service;
+
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class BookInfoServiceImpl implements BookInfoService {
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    @Override
+    public String fetchDescriptionByIsbn(String isbn) {
+
+        try {
+            // STEP 1: ISBN (edition) lookup
+            
+            String isbnUrl = "https://openlibrary.org/isbn/" + isbn + ".json";
+            Map<?, ?> isbnResponse = restTemplate.getForObject(isbnUrl, Map.class);
+
+            if (isbnResponse == null) return "Description not available1";
+
+            // ✅ NEW: try edition description first
+            String editionDesc = extractDescription(isbnResponse);
+            if (editionDesc != null) return editionDesc;
+            
+            // STEP 2: fallback → work lookup
+            Object worksObj = isbnResponse.get("works");
+            if (!(worksObj instanceof List<?> works) || works.isEmpty())
+                return "Description not available2";
+
+            Object firstWork = works.get(0);
+            if (!(firstWork instanceof Map<?, ?> workMap))
+                return "Description not available3";
+
+            String workKey = (String) workMap.get("key");
+            if (workKey == null)
+                return "Description not available4";
+
+            String workUrl = "https://openlibrary.org" + workKey + ".json";
+            Map<?, ?> workResponse = restTemplate.getForObject(workUrl, Map.class);
+
+            if (workResponse == null)
+                return "Description not available6";
+
+            String workDesc = extractDescription(workResponse);
+            if (workDesc != null) return workDesc;
+
+        } catch (Exception ignored) {}
+
+        return "Description not available7";
+    }
+
+    
+    private String extractDescription(Map<?, ?> json) {
+
+        Object desc = json.get("description");
+
+        if (desc instanceof String s)
+            return s;
+
+        if (desc instanceof Map<?, ?> m) {
+            Object value = m.get("value");
+            if (value instanceof String s)
+                return s;
+        }
+
+        return null;
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/BookService.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.BookRequest;
+import com.example.lms.dto.BookResponse;
+
+import java.util.List;
+
+public interface BookService {
+
+    List<BookResponse> getBooks(Integer id, String isbn, String title,
+                                String author, String category, boolean isAdmin);
+
+    BookResponse create(BookRequest req);
+
+    BookResponse update(Integer id, BookRequest req);
+
+    void delete(Integer id);
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/BookServiceImpl.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.BookRequest;
+import com.example.lms.dto.BookResponse;
+import com.example.lms.entity.Book;
+import com.example.lms.repository.BookRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.time.LocalDate;
+
+@Service
+public class BookServiceImpl implements BookService {
+
+    private final BookRepository repo;
+    private final BookInfoService bookInfoService;
+    private final com.example.lms.repository.CategoryRepository categoryRepo;
+    private final com.example.lms.repository.BookCategoryRepository bookCategoryRepo;
+
+    public BookServiceImpl(BookRepository repo,
+            BookInfoService bookInfoService,
+            com.example.lms.repository.CategoryRepository categoryRepo,
+            com.example.lms.repository.BookCategoryRepository bookCategoryRepo) {
+        this.repo = repo;
+        this.bookInfoService = bookInfoService;
+        this.categoryRepo = categoryRepo;
+        this.bookCategoryRepo = bookCategoryRepo;
+    }
+
+    private BookResponse toResponse(Book b, List<String> categories) {
+        BookResponse r = new BookResponse();
+        r.setBook_id(b.getBook_id());
+        r.setTitle(b.getTitle());
+        r.setIsbn(b.getIsbn());
+        r.setPublisher(b.getPublisher());
+        r.setPublish_year(b.getPublish_year());
+        r.setEdition(b.getEdition());
+        r.setAuthor(b.getAuthor());
+        r.setDescription(b.getDescription());
+        r.setCreatedAt(b.getCreatedAt());
+        r.setCategories(categories);
+        return r;
+    }
+
+    @Override
+    public List<BookResponse> getBooks(Integer id, String isbn, String title,
+            String author, String category, boolean isAdmin) {
+        if (id != null && !isAdmin) {
+            throw new RuntimeException("Only admin can filter by id");
+        }
+
+        List<Book> books;
+        if (category != null) {
+            books = repo.findByCategoryName(category);
+        } else {
+            books = repo.findAll();
+        }
+
+        Map<Integer, List<String>> categoriesByBookId = new HashMap<>();
+        if (!books.isEmpty()) {
+            List<Integer> bookIds = books.stream().map(Book::getBook_id).toList();
+            for (Object[] row : repo.findCategoryNamesByBookIds(bookIds)) {
+                if (row == null || row.length < 2) continue;
+                Number bookIdValue = (Number) row[0];
+                String categoryName = (String) row[1];
+                if (bookIdValue == null || categoryName == null) continue;
+                Integer bookId = bookIdValue.intValue();
+                categoriesByBookId.computeIfAbsent(bookId, k -> new java.util.ArrayList<>()).add(categoryName);
+            }
+        }
+
+        return books.stream()
+                .filter(b -> id == null || b.getBook_id().equals(id))
+                .filter(b -> isbn == null || b.getIsbn().toLowerCase().contains(isbn.toLowerCase()))
+                .filter(b -> title == null || b.getTitle().toLowerCase().contains(title.toLowerCase()))
+                .filter(b -> author == null || b.getAuthor().toLowerCase().contains(author.toLowerCase()))
+                .map(b -> toResponse(b, categoriesByBookId.getOrDefault(b.getBook_id(), List.of())))
+                .toList();
+    }
+
+    @Override
+    public BookResponse create(BookRequest req) {
+
+        Book b = new Book();
+        b.setTitle(req.getTitle());
+        b.setIsbn(req.getIsbn());
+        b.setPublisher(req.getPublisher());
+        b.setPublish_year(req.getPublish_year());
+        b.setEdition(req.getEdition());
+        b.setAuthor(req.getAuthor());
+
+        String desc = bookInfoService.fetchDescriptionByIsbn(req.getIsbn());
+        b.setDescription(desc);
+        b.setCreatedAt(LocalDate.now());
+
+        Book savedBook = repo.save(b);
+
+        if (req.getCategories() != null) {
+            for (String catName : req.getCategories()) {
+                com.example.lms.entity.Category category = categoryRepo.findByCategoryNameIgnoreCase(catName)
+                        .orElseGet(() -> {
+                            com.example.lms.entity.Category newCat = new com.example.lms.entity.Category();
+                            newCat.setCategory_name(catName);
+                            return categoryRepo.save(newCat);
+                        });
+
+                com.example.lms.entity.BookCategory bookCat = new com.example.lms.entity.BookCategory();
+                bookCat.setBookId(savedBook.getBook_id());
+                bookCat.setCategoryId(category.getCategory_id());
+                bookCategoryRepo.save(bookCat);
+            }
+        }
+
+        List<String> categories = bookCategoryRepo.findCategoryNamesByBookId(savedBook.getBook_id());
+        return toResponse(savedBook, categories);
+    }
+
+    @Override
+    public BookResponse update(Integer id, BookRequest req) {
+
+        Book b = repo.findById(id).orElseThrow();
+
+        b.setTitle(req.getTitle());
+        b.setIsbn(req.getIsbn());
+        b.setPublisher(req.getPublisher());
+        b.setPublish_year(req.getPublish_year());
+        b.setEdition(req.getEdition());
+        b.setAuthor(req.getAuthor());
+
+        Book saved = repo.save(b);
+        List<String> categories = bookCategoryRepo.findCategoryNamesByBookId(saved.getBook_id());
+        return toResponse(saved, categories);
+    }
+
+    @Override
+    public void delete(Integer id) {
+        repo.deleteById(id);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/CategoryService.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.CategoryRequest;
+import com.example.lms.dto.CategoryResponse;
+import com.example.lms.entity.Category;
+import com.example.lms.repository.CategoryRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CategoryService {
+
+    private final CategoryRepository categoryRepository;
+
+    public CategoryService(CategoryRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
+    }
+
+    public CategoryResponse create(CategoryRequest categoryRequest) {
+        Category category = new Category();
+        category.setCategory_name(categoryRequest.getCategory_name());
+        Category saved = categoryRepository.save(category);
+        return toResponse(saved);
+    }
+
+    public CategoryResponse update(Integer id, CategoryRequest updated) {
+        Category existing = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        existing.setCategory_name(updated.getCategory_name());
+        Category saved = categoryRepository.save(existing);
+        return toResponse(saved);
+    }
+
+    public Page<CategoryResponse> getCategories(Integer id, Integer page, Integer size) {
+
+    Pageable pageable = buildPageable(page, size);
+
+    
+    if (id != null) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        return toSinglePage(category, pageable);
+    }
+
+    
+    Page<Category> categoryPage = categoryRepository.findAll(pageable);
+
+    return categoryPage.map(this::toResponse);
+}
+
+    public void delete(Integer id) {
+        categoryRepository.deleteById(id);
+    }
+
+    private CategoryResponse toResponse(Category category) {
+        CategoryResponse response = new CategoryResponse();
+        response.setCategory_id(category.getCategory_id());
+        response.setCategory_name(category.getCategory_name());
+        return response;
+    }
+
+    private Pageable buildPageable(Integer page, Integer size) {
+        int safePage = page == null || page < 0 ? 0 : page;
+        int safeSize = size == null || size <= 0 ? 10 : size;
+        return PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "categoryName"));
+    }
+
+    private Page<CategoryResponse> toSinglePage(Category category, Pageable pageable) {
+        if (pageable.getPageNumber() > 0) {
+            return Page.empty(pageable);
+        }
+        return new PageImpl<>(List.of(toResponse(category)), pageable, 1);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/CopyService.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.CopyAvailabilityResponse;
+import com.example.lms.dto.CopyRequest;
+import com.example.lms.entity.Copy;
+
+import java.util.List;
+
+public interface CopyService {
+
+    
+    List<Copy> createCopies(CopyRequest req);
+
+    List<Copy> getCopies(Integer id, Integer bookId, String status);
+
+    void delete(Integer id);
+
+    
+    CopyAvailabilityResponse getAvailability(Integer bookId);
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/CopyServiceImpl.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.CopyAvailabilityResponse;
+import com.example.lms.dto.CopyRequest;
+import com.example.lms.entity.Book;
+import com.example.lms.entity.Copy;
+import com.example.lms.repository.BookRepository;
+import com.example.lms.repository.CopyRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class CopyServiceImpl implements CopyService {
+
+    private final CopyRepository copyRepo;
+    private final BookRepository bookRepo;
+
+    public CopyServiceImpl(CopyRepository copyRepo, BookRepository bookRepo) {
+        this.copyRepo = copyRepo;
+        this.bookRepo = bookRepo;
+    }
+
+    @Override
+    public List<Copy> createCopies(CopyRequest req) {
+
+        // ✅ CHANGED: ensure book exists
+        Book book = bookRepo.findById(req.getBookId())
+                .orElseThrow(() -> new RuntimeException("Book not found"));
+
+        int count = Math.max(req.getCount(), 1); // safety
+
+        List<Copy> copies = new ArrayList<>();
+
+        // ✅ CHANGED: bulk creation loop
+        for (int i = 0; i < count; i++) {
+            Copy c = new Copy();
+            c.setBook(book);
+            c.setStatus("available");
+            copies.add(c);
+        }
+
+        return copyRepo.saveAll(copies);
+    }
+
+    @Override
+    public List<Copy> getCopies(Integer id, Integer bookId, String status) {
+        String normalizedStatus = status == null ? null : status.trim();
+
+        if (id != null) {
+            Copy copy = copyRepo.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Copy not found"));
+            if (bookId != null && !copy.getBook().getBook_id().equals(bookId)) {
+                return List.of();
+            }
+            if (normalizedStatus != null && !copy.getStatus().equalsIgnoreCase(normalizedStatus)) {
+                return List.of();
+            }
+            return List.of(copy);
+        }
+
+        if (bookId != null && normalizedStatus != null) {
+            return copyRepo.findByBook_BookIdAndStatusIgnoreCase(bookId, normalizedStatus);
+        }
+        if (bookId != null) {
+            return copyRepo.findByBook_BookId(bookId);
+        }
+        if (normalizedStatus != null) {
+            return copyRepo.findByStatusIgnoreCase(normalizedStatus);
+        }
+        return copyRepo.findAll();
+    }
+
+    @Override
+    public void delete(Integer id) {
+        copyRepo.deleteById(id);
+    }
+
+    @Override
+    public CopyAvailabilityResponse getAvailability(Integer bookId) {
+
+        // ✅ NEW: count available/unavailable
+        long available = copyRepo.countByBook_BookIdAndStatus(bookId, "available");
+        long unavailable = copyRepo.countByBook_BookIdAndStatus(bookId, "unavailable");
+
+        CopyAvailabilityResponse res = new CopyAvailabilityResponse();
+        res.setBookId(bookId);
+        res.setAvailable(available);
+        res.setUnavailable(unavailable);
+
+        return res;
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/DashboardService.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.DashboardStatsResponse;
+import com.example.lms.dto.CategoryCountResponse;
+import com.example.lms.dto.LoanResponse;
+import java.util.List;
+
+public interface DashboardService {
+    DashboardStatsResponse getStats();
+
+    List<CategoryCountResponse> getCategoryCounts();
+
+    List<LoanResponse> getPriorityFollowUps();
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/DashboardServiceImpl.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.DashboardStatsResponse;
+import com.example.lms.dto.CategoryCountResponse;
+import com.example.lms.dto.LoanResponse;
+import com.example.lms.repository.*;
+import org.springframework.stereotype.Service;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class DashboardServiceImpl implements DashboardService {
+
+    private final BookRepository bookRepository;
+    private final CopyRepository copyRepository;
+    private final LoanRepository loanRepository;
+    private final FineRepository fineRepository;
+    private final CategoryRepository categoryRepository;
+
+    public DashboardServiceImpl(BookRepository bookRepository,
+            CopyRepository copyRepository,
+            LoanRepository loanRepository,
+            FineRepository fineRepository,
+            CategoryRepository categoryRepository) {
+        this.bookRepository = bookRepository;
+        this.copyRepository = copyRepository;
+        this.loanRepository = loanRepository;
+        this.fineRepository = fineRepository;
+        this.categoryRepository = categoryRepository;
+    }
+
+    @Override
+    public DashboardStatsResponse getStats() {
+        long totalBooks = bookRepository.count();
+        long availableCopies = copyRepository.countByStatusIgnoreCase("available");
+        long issuedBooks = copyRepository.countByStatusIgnoreCase("unavailable");
+        long overdueLoans = loanRepository.countByReturnDateIsNullAndDueDateBefore(LocalDate.now());
+        Double unpaidFines = fineRepository.sumUnpaidFines();
+
+        return new DashboardStatsResponse(
+                totalBooks,
+                availableCopies,
+                issuedBooks,
+                overdueLoans,
+                unpaidFines != null ? unpaidFines : 0.0);
+    }
+
+    @Override
+    public List<CategoryCountResponse> getCategoryCounts() {
+        return categoryRepository.findCategoryCounts();
+    }
+
+    @Override
+    public List<LoanResponse> getPriorityFollowUps() {
+        // Loans overdue > 14 days
+        LocalDate fourteenDaysAgo = LocalDate.now().minusDays(14);
+        return loanRepository
+                .findByReturnDateIsNullAndDueDateBefore(fourteenDaysAgo,
+                        org.springframework.data.domain.PageRequest.of(0, 10))
+                .map(this::mapToResponse)
+                .getContent();
+    }
+
+    private LoanResponse mapToResponse(com.example.lms.entity.Loan loan) {
+        return new LoanResponse(
+                loan.getLoanId(),
+                loan.getCopy().getCopyId(),
+                loan.getCopy().getBook().getTitle(),
+                loan.getMember().getMemberId(),
+                loan.getMember().getName(),
+                loan.getIssueDate(),
+                loan.getDueDate(),
+                loan.getReturnDate(),
+                loan.getRemarks(),
+                loan.getCreatedAt());
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/EmailService.java">
+package com.example.lms.service;
+
+public interface EmailService {
+
+    void sendPasswordEmail(String to, String password);
+
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/EmailServiceImpl.java">
+package com.example.lms.service;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
+
+@Service
+public class EmailServiceImpl implements EmailService {
+
+    private final JavaMailSender mailSender;
+
+    @Value("${spring.mail.username}")
+    private String from;
+
+    public EmailServiceImpl(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
+
+    @Override
+    public void sendPasswordEmail(String to, String password) {
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(from);   
+        message.setTo(to);       
+        message.setSubject("LibHub - Login Credentials");
+        message.setText(
+                "Welcome to LibHub \n\n" +
+                "Your login password: " + password + "\n\n"
+                
+        );
+
+        mailSender.send(message);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/FineService.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.FineRequest;
+import com.example.lms.dto.FineResponse;
+import org.springframework.data.domain.Page;
+
+
+
+public interface FineService {
+
+    FineResponse createFine(FineRequest request);
+
+    FineResponse updateFine(Integer fineId, FineRequest request);
+
+    void deleteFine(Integer fineId);
+    FineResponse markFinePaid(Integer fineId);
+    Page<FineResponse> getFines(Integer fineId, Integer memberId, String status,
+                                Integer requesterMemberId, boolean isAdmin,
+                                Integer page, Integer size);
+
+    void checkAndCreateFine(Integer loanId);
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/FineServiceImpl.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.FineRequest;
+import com.example.lms.dto.FineResponse;
+import com.example.lms.entity.Fine;
+import com.example.lms.entity.Loan;
+import com.example.lms.repository.FineRepository;
+import com.example.lms.repository.LoanRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.AccessDeniedException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+
+@Service
+public class FineServiceImpl implements FineService {
+
+    private final FineRepository fineRepository;
+    private final LoanRepository loanRepository;
+
+    public FineServiceImpl(FineRepository fineRepository,
+            LoanRepository loanRepository) {
+        this.fineRepository = fineRepository;
+        this.loanRepository = loanRepository;
+    }
+
+    @Scheduled(cron = "0 0 1 * * ?")
+    public void checkAndCreateFinesScheduled() {
+        loanRepository.findAll()
+                .forEach(loan -> checkAndCreateFine(loan.getLoanId()));
+    }
+
+    // AUTO CREATE when overdue
+    @Override
+    public void checkAndCreateFine(Integer loanId) {
+
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException("Loan not found"));
+
+        if (loan.getReturnDate() != null)
+            return;
+
+        if (!loan.getDueDate().isBefore(LocalDate.now()))
+            return;
+
+        if (fineRepository.findByLoan_LoanId(loanId).isPresent())
+            return;
+
+        long daysLate = loan.getDueDate().until(LocalDate.now()).getDays();
+        BigDecimal amount = BigDecimal.valueOf(daysLate * 10);
+
+        Fine fine = new Fine();
+        fine.setLoan(loan);
+        fine.setAmount(amount);
+        fine.setPaidAmount(BigDecimal.ZERO);
+        fine.setStatus("unpaid");
+
+        fineRepository.save(fine);
+    }
+
+    @Override
+    public FineResponse createFine(FineRequest request) {
+
+        Loan loan = loanRepository.findById(request.getLoanId())
+                .orElseThrow(() -> new RuntimeException("Loan not found"));
+
+        Fine fine = new Fine();
+        fine.setLoan(loan);
+        fine.setAmount(request.getAmount());
+        if (request.getReason() != null) {
+            fine.setReason(request.getReason());
+        }
+
+        applyPaymentFields(fine, request);
+
+        return map(fineRepository.save(fine));
+    }
+
+    @Override
+    public FineResponse updateFine(Integer fineId, FineRequest request) {
+
+        Fine fine = fineRepository.findById(fineId)
+                .orElseThrow(() -> new RuntimeException("Fine not found"));
+
+        if (request.getAmount() != null)
+            fine.setAmount(request.getAmount());
+        if (request.getReason() != null) {
+            fine.setReason(request.getReason());
+        }
+
+        applyPaymentFields(fine, request);
+
+        return map(fineRepository.save(fine));
+    }
+
+    private void applyPaymentFields(Fine fine, FineRequest request) {
+
+        if (request.getPaidAmount() != null)
+            fine.setPaidAmount(request.getPaidAmount());
+
+        if (request.getStatus() != null)
+            fine.setStatus(request.getStatus());
+
+        if (request.getPaidDate() != null)
+            fine.setPaidDate(request.getPaidDate());
+
+        if (fine.getPaidAmount() != null && fine.getAmount() != null) {
+            if (fine.getPaidAmount().compareTo(fine.getAmount()) >= 0)
+                fine.setStatus("paid");
+            else
+                fine.setStatus("unpaid");
+        }
+    }
+
+    @Override
+    public void deleteFine(Integer fineId) {
+        fineRepository.deleteById(fineId);
+    }
+
+    @Override
+    public Page<FineResponse> getFines(Integer fineId, Integer memberId, String status,
+            Integer requesterMemberId, boolean isAdmin,
+            Integer page, Integer size) {
+        String normalizedStatus = status == null ? null : status.trim().toLowerCase();
+        Pageable pageable = buildPageable(page, size);
+
+        if (!isAdmin && memberId != null) {
+            throw new AccessDeniedException("Only admin can use memberId filter");
+        }
+
+        if (fineId == null) {
+            Page<Fine> finePage;
+            if (isAdmin) {
+                if (memberId != null) {
+                    List<Fine> sortedFines = fineRepository.findByMemberIdSorted(memberId);
+                    int start = Math.min((int) pageable.getOffset(), sortedFines.size());
+                    int end = Math.min((start + pageable.getPageSize()), sortedFines.size());
+                    List<Fine> pagedContent = sortedFines.subList(start, end);
+                    finePage = new PageImpl<>(pagedContent, pageable, sortedFines.size());
+                } else if (normalizedStatus != null) {
+                    finePage = fineRepository.findByStatusIgnoreCase(normalizedStatus, pageable);
+                } else {
+                    finePage = fineRepository.findAll(pageable);
+                }
+            } else {
+                Integer targetMemberId = requesterMemberId;
+                if (normalizedStatus != null) {
+                    finePage = fineRepository.findByLoanMemberMemberIdAndStatusIgnoreCase(
+                            targetMemberId, normalizedStatus, pageable);
+                } else {
+                    List<Fine> sortedFines = fineRepository.findByMemberIdSorted(targetMemberId);
+                    int start = Math.min((int) pageable.getOffset(), sortedFines.size());
+                    int end = Math.min((start + pageable.getPageSize()), sortedFines.size());
+                    List<Fine> pagedContent = sortedFines.subList(start, end);
+                    finePage = new PageImpl<>(pagedContent, pageable, sortedFines.size());
+                }
+            }
+            return finePage.map(this::map);
+        }
+
+        Fine fine = fineRepository.findById(fineId)
+                .orElseThrow(() -> new RuntimeException("Fine not found"));
+
+        Integer ownerId = fine.getLoan().getMember().getMemberId();
+        if (!isAdmin && !ownerId.equals(requesterMemberId)) {
+            throw new AccessDeniedException("You cannot view this fine");
+        }
+        if (memberId != null && !ownerId.equals(memberId)) {
+            return Page.empty(pageable);
+        }
+        if (normalizedStatus != null && !fine.getStatus().equalsIgnoreCase(normalizedStatus)) {
+            return Page.empty(pageable);
+        }
+        return toSinglePage(fine, pageable);
+    }
+
+    @Override
+    public FineResponse markFinePaid(Integer fineId) {
+
+        Fine fine = fineRepository.findById(fineId)
+                .orElseThrow(() -> new RuntimeException("Fine not found"));
+
+        if ("paid".equalsIgnoreCase(fine.getStatus()))
+            return map(fine);
+
+        fine.setPaidAmount(fine.getAmount());
+        fine.setStatus("paid");
+        fine.setPaidDate(LocalDate.now());
+
+        Fine updated = fineRepository.save(fine);
+        return map(updated);
+    }
+
+    private Pageable buildPageable(Integer page, Integer size) {
+        int safePage = page == null || page < 0 ? 0 : page;
+        int safeSize = size == null || size <= 0 ? 10 : size;
+        return PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "fineId"));
+    }
+
+    private Page<FineResponse> toSinglePage(Fine fine, Pageable pageable) {
+        if (pageable.getPageNumber() > 0) {
+            return Page.empty(pageable);
+        }
+        return new PageImpl<>(List.of(map(fine)), pageable, 1);
+    }
+
+    private FineResponse map(Fine fine) {
+        Loan loan = fine.getLoan();
+
+        return new FineResponse(
+                fine.getFineId(),
+                loan.getLoanId(),
+                loan.getMember().getMemberId(),
+                loan.getMember().getName(),
+                fine.getAmount(),
+                fine.getPaidAmount(),
+                fine.getStatus(),
+                fine.getPaidDate(),
+                fine.getReason(),
+                fine.getCreatedAt());
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/LoanService.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.LoanRequest;
+import com.example.lms.dto.LoanResponse;
+import com.example.lms.dto.LoanUpdateRequest;
+import org.springframework.data.domain.Page;
+
+import java.util.List;
+
+public interface LoanService {
+
+    LoanResponse createLoan(LoanRequest request);
+
+    LoanResponse updateLoan(Integer loanId, LoanUpdateRequest request);
+
+    LoanResponse returnBook(Integer loanId);
+
+    void deleteLoan(Integer loanId);
+
+    Page<LoanResponse> getLoans(Integer loanId, Integer memberId, Boolean overdue,
+            Integer requesterMemberId, boolean isAdmin,
+            Integer page, Integer size);
+
+    List<LoanResponse> getOverdueLoans();
+
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/LoanServiceImpl.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.LoanRequest;
+import com.example.lms.dto.LoanResponse;
+import com.example.lms.dto.LoanUpdateRequest;
+import com.example.lms.entity.Copy;
+import com.example.lms.entity.Loan;
+import com.example.lms.entity.Member;
+import com.example.lms.repository.CopyRepository;
+import com.example.lms.repository.LoanRepository;
+import com.example.lms.repository.MemberRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class LoanServiceImpl implements LoanService {
+
+    private final LoanRepository loanRepository;
+    private final CopyRepository copyRepository;
+    private final MemberRepository memberRepository;
+
+    public LoanServiceImpl(LoanRepository loanRepository,
+            CopyRepository copyRepository,
+            MemberRepository memberRepository) {
+        this.loanRepository = loanRepository;
+        this.copyRepository = copyRepository;
+        this.memberRepository = memberRepository;
+    }
+
+    @Override
+    public LoanResponse createLoan(LoanRequest request) {
+        Copy copy = copyRepository.findById(request.getCopyId())
+                .orElseThrow(() -> new RuntimeException("Copy not found"));
+
+        Member member = memberRepository.findById(request.getMemberId())
+                .orElseThrow(() -> new RuntimeException("Member not found"));
+        if (copy.getStatus().equalsIgnoreCase("UNAVAILABLE")) {
+            throw new RuntimeException("Copy is currently unavailable");
+        }
+        long activeLoans = loanRepository.countByMember_MemberIdAndReturnDateIsNull(member.getMemberId());
+
+        if (activeLoans >= 3) {
+            throw new RuntimeException("Member already has maximum 3 active loans");
+        }
+
+        // only one copy of same book
+        Integer bookId = copy.getBook().getBook_id();
+
+        boolean alreadyHasBook = loanRepository.existsByMember_MemberIdAndCopy_Book_BookIdAndReturnDateIsNull(
+                member.getMemberId(), bookId);
+
+        if (alreadyHasBook) {
+            throw new RuntimeException("Member already has a copy of this book");
+        }
+        Loan loan = new Loan();
+        loan.setCopy(copy);
+        loan.setMember(member);
+        System.out.println("Issue Date: " + request.getIssueDate());
+
+        loan.setIssueDate(request.getIssueDate());
+        loan.setReturnDate(null);
+        loan.setDueDate(request.getIssueDate().plusDays(14));
+        if (request.getRemarks() != null) {
+            loan.setRemarks(request.getRemarks());
+        }
+
+        Loan saved = loanRepository.save(loan);
+        copy.setStatus("unavailable");
+        copyRepository.save(copy);
+        return mapToResponse(saved);
+    }
+
+    @Override
+    public LoanResponse updateLoan(Integer loanId, LoanUpdateRequest request) {
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException("Loan not found"));
+
+        if (request.getCopyId() != null) {
+            Copy copy = copyRepository.findById(request.getCopyId())
+                    .orElseThrow(() -> new RuntimeException("Copy not found"));
+            loan.setCopy(copy);
+        }
+
+        if (request.getMemberId() != null) {
+            Member member = memberRepository.findById(request.getMemberId())
+                    .orElseThrow(() -> new RuntimeException("Member not found"));
+            loan.setMember(member);
+        }
+
+        if (request.getIssueDate() != null) {
+            loan.setIssueDate(request.getIssueDate());
+
+            // recompute dueDate only if user didn't send one
+            if (request.getDueDate() == null) {
+                loan.setDueDate(request.getIssueDate().plusDays(14));
+            }
+        }
+
+        // dueDate explicit override
+        if (request.getDueDate() != null) {
+            loan.setDueDate(request.getDueDate());
+        }
+
+        // returnDate update
+        if (request.getReturnDate() != null) {
+            loan.setReturnDate(request.getReturnDate());
+        }
+
+        if (request.getRemarks() != null) {
+            loan.setRemarks(request.getRemarks());
+        }
+
+        Loan updated = loanRepository.save(loan);
+        return mapToResponse(updated);
+    }
+
+    @Override
+    public void deleteLoan(Integer loanId) {
+        loanRepository.deleteById(loanId);
+    }
+
+    @Override
+    public Page<LoanResponse> getLoans(Integer loanId, Integer memberId, Boolean overdue,
+            Integer requesterMemberId, boolean isAdmin,
+            Integer page, Integer size) {
+        boolean applyOverdue = Boolean.TRUE.equals(overdue);
+        Pageable pageable = buildPageable(page, size, applyOverdue);
+
+        if (loanId == null) {
+            Page<Loan> loanPage;
+            Integer targetMemberId = memberId;
+            if (!isAdmin) {
+                targetMemberId = requesterMemberId;
+            }
+
+            if (targetMemberId != null) {
+                if (applyOverdue) {
+                    loanPage = loanRepository.findByMember_MemberIdAndReturnDateIsNullAndDueDateBefore(
+                            targetMemberId, LocalDate.now(), pageable);
+                } else {
+                    loanPage = loanRepository.findByMember_MemberId(targetMemberId, pageable);
+                }
+            } else if (isAdmin && applyOverdue) {
+                loanPage = loanRepository.findByReturnDateIsNullAndDueDateBefore(LocalDate.now(), pageable);
+            } else if (isAdmin) {
+                loanPage = loanRepository.findAll(pageable);
+            } else {
+                // Should not happen for non-admin without memberId
+                return Page.empty(pageable);
+            }
+            return loanPage.map(this::mapToResponse);
+        }
+
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException("Loan not found"));
+
+        if (!isAdmin && !loan.getMember().getMemberId().equals(requesterMemberId)) {
+            throw new AccessDeniedException("You are not allowed to access this loan");
+        }
+        if (applyOverdue) {
+            boolean isOverdue = loan.getReturnDate() == null && loan.getDueDate().isBefore(LocalDate.now());
+            if (!isOverdue) {
+                return Page.empty(pageable);
+            }
+        }
+        return toSinglePage(loan, pageable);
+    }
+
+    private Pageable buildPageable(Integer page, Integer size, boolean overdue) {
+        int safePage = page == null || page < 0 ? 0 : page;
+        int safeSize = size == null || size <= 0 ? 10 : size;
+        if (overdue) {
+            return PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "dueDate"));
+        }
+        return PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "issueDate"));
+    }
+
+    private Page<LoanResponse> toSinglePage(Loan loan, Pageable pageable) {
+        if (pageable.getPageNumber() > 0) {
+            return Page.empty(pageable);
+        }
+        List<LoanResponse> content = List.of(mapToResponse(loan));
+        return new PageImpl<>(content, pageable, 1);
+    }
+
+    private LoanResponse mapToResponse(Loan loan) {
+        return new LoanResponse(
+                loan.getLoanId(),
+                loan.getCopy().getCopyId(),
+                loan.getCopy().getBook().getTitle(),
+                loan.getMember().getMemberId(),
+                loan.getMember().getName(),
+                loan.getIssueDate(),
+                loan.getDueDate(),
+                loan.getReturnDate(),
+                loan.getRemarks(),
+                loan.getCreatedAt());
+    }
+
+    @Override
+    public List<LoanResponse> getOverdueLoans() {
+        return loanRepository.findByReturnDateIsNullAndDueDateBeforeOrderByDueDateAsc(LocalDate.now())
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public LoanResponse returnBook(Integer loanId) {
+
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException("Loan not found"));
+
+        if (loan.getReturnDate() != null) {
+            throw new RuntimeException("Book already returned");
+        }
+
+        loan.setReturnDate(LocalDate.now());
+
+        Copy copy = loan.getCopy();
+        copy.setStatus("available");
+
+        copyRepository.save(copy);
+        Loan updated = loanRepository.save(loan);
+
+        return mapToResponse(updated);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/MemberService.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.*;
+import com.example.lms.entity.Member;
+import org.springframework.data.domain.Page;
+
+public interface MemberService {
+
+    Member createMember(CreateMemberRequest req, boolean isAdmin);
+
+    Member updateMember(Integer id, UpdateMemberRequest req,
+            Integer requesterId, boolean isAdmin);
+
+    void deleteMember(Integer id, Integer requesterId, boolean isAdmin);
+
+    void changePassword(Integer id, ChangePasswordRequest req);
+
+    void changestatus(Integer id);
+
+    Page<MemberResponse> getMembers(Integer id, String status, String name,
+            Integer requesterId, boolean isAdmin,
+            Integer page, Integer size);
+
+    Integer getNextMemberId();
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/MemberServiceImpl.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.*;
+import com.example.lms.entity.Member;
+import com.example.lms.repository.MemberRepository;
+import com.example.lms.util.PasswordUtil;
+import java.time.LocalDate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+@Service
+public class MemberServiceImpl implements MemberService {
+
+    private final MemberRepository repo;
+    private final PasswordEncoder encoder;
+    private final EmailService emailService;
+
+    public MemberServiceImpl(MemberRepository repo,
+            PasswordEncoder encoder,
+            EmailService emailService) {
+        this.repo = repo;
+        this.encoder = encoder;
+        this.emailService = emailService;
+    }
+
+    @Override
+    public Member createMember(CreateMemberRequest req, boolean isAdmin) {
+
+        Member m = new Member();
+        m.setName(req.getName());
+        m.setEmail(req.getEmail());
+        m.setPhone(req.getPhone());
+        m.setAddress(req.getAddress());
+
+        if ("admin".equalsIgnoreCase(req.getRole())) {
+            if (!isAdmin)
+                throw new RuntimeException("Only admin can create admin");
+            m.setRole("admin");
+        } else {
+            m.setRole("member");
+        }
+
+        String rawPwd = PasswordUtil.generateRandomPassword();
+        m.setHashedPwd(encoder.encode(rawPwd));
+        m.setStatus("active");
+
+        // ensure membership start is set (database has default current_date)
+        if (m.getMembershipStart() == null) {
+            m.setMembershipStart(LocalDate.now());
+        }
+
+        Member saved = repo.save(m);
+
+        try {
+            emailService.sendPasswordEmail(saved.getEmail(), rawPwd);
+        } catch (Exception e) {
+            // Log the error but don't fail member creation
+            System.err.println("Failed to send password email to " + saved.getEmail() + ": " + e.getMessage());
+        }
+
+        return saved;
+    }
+
+    @Override
+    public Member updateMember(Integer id, UpdateMemberRequest req,
+            Integer requesterId, boolean isAdmin) {
+
+        Member m = repo.findById(id).orElseThrow();
+
+        if (!isAdmin && !id.equals(requesterId))
+            throw new RuntimeException("Forbidden");
+
+        m.setName(req.getName());
+        m.setPhone(req.getPhone());
+        m.setAddress(req.getAddress());
+
+        return repo.save(m);
+    }
+
+    @Override
+    public void deleteMember(Integer id, Integer requesterId, boolean isAdmin) {
+
+        if (!isAdmin && !id.equals(requesterId))
+            throw new RuntimeException("Forbidden");
+
+        repo.deleteById(id);
+    }
+
+    @Override
+    public void changePassword(Integer id, ChangePasswordRequest req) {
+
+        Member m = repo.findById(id).orElseThrow();
+
+        if (!encoder.matches(req.getOldPassword(), m.getHashedPwd()))
+            throw new RuntimeException("Wrong password");
+
+        m.setHashedPwd(encoder.encode(req.getNewPassword()));
+        repo.save(m);
+    }
+
+    @Override
+    public void changestatus(Integer Id) {
+        Member m = repo.findById(Id).orElseThrow();
+        if (m.getStatus().equals("active")) {
+            m.setStatus("inactive");
+        } else {
+            m.setStatus("active");
+        }
+        repo.save(m);
+    }
+
+    @Override
+    public Page<MemberResponse> getMembers(Integer id, String status, String name,
+            Integer requesterId, boolean isAdmin,
+            Integer page, Integer size) {
+        String normalizedStatus = status == null ? null : status.trim().toLowerCase();
+        String normalizedName = name == null ? null : name.trim().toLowerCase();
+        Pageable pageable = buildPageable(page, size);
+
+        if (id == null) {
+            if (isAdmin) {
+                Page<Member> memberPage = findAdminMembers(normalizedStatus, normalizedName, pageable);
+                return memberPage
+                        .map(this::toResponse);
+            }
+
+            if (normalizedStatus != null || normalizedName != null) {
+                throw new RuntimeException("Only admin can use name/status filters");
+            }
+
+            Member self = repo.findById(requesterId).orElseThrow();
+            return toSinglePage(self, pageable);
+        }
+
+        if (!isAdmin && !id.equals(requesterId)) {
+            throw new RuntimeException("Forbidden");
+        }
+
+        if (!isAdmin && (normalizedStatus != null || normalizedName != null)) {
+            throw new RuntimeException("Only admin can use name/status filters");
+        }
+
+        Member member = repo.findById(id).orElseThrow();
+        if (isAdmin) {
+            if (normalizedStatus != null && !member.getStatus().equalsIgnoreCase(normalizedStatus)) {
+                return Page.empty(pageable);
+            }
+            if (normalizedName != null &&
+                    !member.getName().toLowerCase().contains(normalizedName)) {
+                return Page.empty(pageable);
+            }
+        }
+        return toSinglePage(member, pageable);
+    }
+
+    private Pageable buildPageable(Integer page, Integer size) {
+        int safePage = page == null || page < 0 ? 0 : page;
+        int safeSize = size == null || size <= 0 ? 10 : size;
+
+        return PageRequest.of(safePage, safeSize);
+    }
+
+    private Page<Member> findAdminMembers(String status, String name, Pageable pageable) {
+        if (status != null && name != null) {
+            return repo.findByStatusIgnoreCaseAndNameContainingIgnoreCase(status, name, pageable);
+        }
+        if (status != null) {
+            return repo.findByStatusIgnoreCase(status, pageable);
+        }
+        if (name != null) {
+            return repo.findByNameContainingIgnoreCase(name, pageable);
+        }
+        return repo.findAll(pageable);
+    }
+
+    private Page<MemberResponse> toSinglePage(Member member, Pageable pageable) {
+        if (pageable.getPageNumber() > 0) {
+            return Page.empty(pageable);
+        }
+        List<MemberResponse> content = List.of(toResponse(member));
+        return new PageImpl<>(content, pageable, 1);
+    }
+
+    private MemberResponse toResponse(Member m) {
+        return new MemberResponse(
+                m.getMemberId(),
+                m.getName(),
+                m.getEmail(),
+                m.getPhone(),
+                m.getAddress(),
+                m.getRole(),
+                m.getStatus(),
+                m.getMembershipStart(),
+                m.getMembershipEnd());
+    }
+
+    @Override
+    public Integer getNextMemberId() {
+        return repo.findMaxId();
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/ReportService.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.ReportResponse;
+import java.util.List;
+
+public interface ReportService {
+    ReportResponse getMonthlyReport(int month, int year);
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/service/ReportServiceImpl.java">
+package com.example.lms.service;
+
+import com.example.lms.dto.ReportResponse;
+import com.example.lms.dto.CategoryCountResponse;
+import com.example.lms.repository.*;
+import org.springframework.stereotype.Service;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.*;
+
+@Service
+public class ReportServiceImpl implements ReportService {
+
+    private final LoanRepository loanRepository;
+    private final MemberRepository memberRepository;
+    private final FineRepository fineRepository;
+    private final CategoryRepository categoryRepository;
+    private final CopyRepository copyRepository;
+
+    public ReportServiceImpl(LoanRepository loanRepository,
+            MemberRepository memberRepository,
+            FineRepository fineRepository,
+            CategoryRepository categoryRepository,
+            CopyRepository copyRepository) {
+        this.loanRepository = loanRepository;
+        this.memberRepository = memberRepository;
+        this.fineRepository = fineRepository;
+        this.categoryRepository = categoryRepository;
+        this.copyRepository = copyRepository;
+    }
+
+    @Override
+    public ReportResponse getMonthlyReport(int month, int year) {
+        LocalDate start = LocalDate.of(year, month, 1);
+        LocalDate end = YearMonth.of(year, month).atEndOfMonth();
+        LocalDate today = LocalDate.now();
+
+        // 1. Total Loans in the month
+        long totalLoans = loanRepository.findAll().stream()
+                .filter(l -> !l.getIssueDate().isBefore(start) && !l.getIssueDate().isAfter(end))
+                .count();
+
+        // 2. New Members in the month
+        long newMembers = memberRepository.findAll().stream()
+                .filter(m -> m.getMembershipStart() != null && !m.getMembershipStart().isBefore(start)
+                        && !m.getMembershipStart().isAfter(end))
+                .count();
+
+        // 3. Fines collected (paymentDate belongs to selected month)
+        // Note: Using paid_date as paymentDate
+        double totalFinesCollected = fineRepository.findAll().stream()
+                .filter(f -> f.getPaidDate() != null && !f.getPaidDate().isBefore(start)
+                        && !f.getPaidDate().isAfter(end))
+                .mapToDouble(f -> f.getPaidAmount().doubleValue())
+                .sum();
+
+        // 4. Fine Collection Metrics (Filtered by month)
+        // Pending Fines = sum(fine.amount) where fine.status == "unpaid" AND
+        // fine.createdAt in selectedMonth
+        double pendingFines = fineRepository.findAll().stream()
+                .filter(f -> "unpaid".equalsIgnoreCase(f.getStatus()))
+                .filter(f -> f.getCreatedAt() != null &&
+                        !f.getCreatedAt().toLocalDate().isBefore(start) &&
+                        !f.getCreatedAt().toLocalDate().isAfter(end))
+                .mapToDouble(f -> f.getAmount().doubleValue())
+                .sum();
+
+        // 5. Overdue Analysis (Active within selected month)
+        // Should we use the end of the month as the reference point for "selected
+        // month" report?
+        // The requirement says: currentDate > dueDate AND returned == false
+        // For a historical report, we should ideally look at the state at 'end'.
+        // But the prompt says "currentDate - dueDate". We'll use 'today' if it's within
+        // the month,
+        // or 'end' of the month if it's a past month.
+        LocalDate referenceDate = today.isBefore(end) ? today : end;
+
+        java.util.List<com.example.lms.entity.Loan> overdueLoans = loanRepository.findAll().stream()
+                .filter(l -> l.getReturnDate() == null && l.getDueDate().isBefore(referenceDate))
+                .toList();
+
+        long overdueCount = overdueLoans.size();
+        double averageOverdueDays = 0;
+        java.util.Map<String, Long> distribution = new java.util.HashMap<>();
+        distribution.put("1-3 Days", 0L);
+        distribution.put("4-7 Days", 0L);
+        distribution.put("1-2 Weeks", 0L);
+        distribution.put("2+ Weeks", 0L);
+
+        if (overdueCount > 0) {
+            long totalDays = 0;
+            for (com.example.lms.entity.Loan l : overdueLoans) {
+                long days = java.time.temporal.ChronoUnit.DAYS.between(l.getDueDate(), referenceDate);
+                totalDays += days;
+
+                if (days <= 3)
+                    distribution.put("1-3 Days", distribution.get("1-3 Days") + 1);
+                else if (days <= 7)
+                    distribution.put("4-7 Days", distribution.get("4-7 Days") + 1);
+                else if (days <= 14)
+                    distribution.put("1-2 Weeks", distribution.get("1-2 Weeks") + 1);
+                else
+                    distribution.put("2+ Weeks", distribution.get("2+ Weeks") + 1);
+            }
+            averageOverdueDays = Math.round((double) totalDays / overdueCount);
+        }
+
+        // 6. Popular Genres (Top 5 + Other)
+        java.util.List<CategoryCountResponse> allCategories = categoryRepository.findCategoryCounts();
+        long totalIssuesAcrossCategories = allCategories.stream().mapToLong(CategoryCountResponse::count).sum();
+
+        java.util.List<CategoryCountResponse> topCategories = new java.util.ArrayList<>();
+        if (!allCategories.isEmpty()) {
+            topCategories.addAll(allCategories.stream().limit(5).toList());
+            if (allCategories.size() > 5) {
+                long otherCount = allCategories.stream().skip(5).mapToLong(CategoryCountResponse::count).sum();
+                topCategories.add(new CategoryCountResponse("Other", otherCount));
+            }
+        }
+
+        // 7. Collection Health Metrics (Library-Wide)
+        // Stock Utilization = (activeLoans / totalCopies) * 100
+        long activeLoans = loanRepository.findAll().stream().filter(l -> l.getReturnDate() == null).count();
+        long totalCopies = copyRepository.count();
+        double stockUtilization = totalCopies > 0 ? ((double) activeLoans / totalCopies) * 100 : 0;
+
+        // Return Rate = (onTimeReturns / totalCompletedLoans) * 100
+        java.util.List<com.example.lms.entity.Loan> completedLoans = loanRepository.findAll().stream()
+                .filter(l -> l.getReturnDate() != null).toList();
+        long totalCompletedLoans = completedLoans.size();
+        long onTimeReturns = completedLoans.stream()
+                .filter(l -> !l.getReturnDate().isAfter(l.getDueDate())).count();
+        double returnRate = totalCompletedLoans > 0 ? ((double) onTimeReturns / totalCompletedLoans) * 100 : 0;
+
+        return new ReportResponse(
+                month,
+                year,
+                totalLoans,
+                newMembers,
+                totalFinesCollected,
+                averageOverdueDays,
+                overdueCount,
+                totalFinesCollected,
+                pendingFines,
+                distribution,
+                topCategories,
+                stockUtilization,
+                returnRate);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/util/PasswordUtil.java">
+package com.example.lms.util;
+
+import java.util.UUID;
+
+public class PasswordUtil {
+
+    public static String generateRandomPassword() {
+        return UUID.randomUUID().toString().substring(0, 8);
+    }
+}
+</file>
+
+<file path="lms/src/main/java/com/example/lms/LmsApplication.java">
+package com.example.lms;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+@SpringBootApplication
+@EnableScheduling
+public class LmsApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(LmsApplication.class, args);
+	}
+
+}
+</file>
+
+<file path="lms/src/main/resources/application.properties">
+spring.application.name=lms
+spring.datasource.url=jdbc:postgresql://localhost:5432/lms
+spring.datasource.username=amru
+spring.datasource.password=root123
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=amruthatarento@gmail.com
+spring.mail.password=nshr yuvo ldsv ftrh 
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+springdoc.swagger-ui.path=/swagger-ui.html
+</file>
+
+<file path="lms/src/test/java/com/example/lms/LmsApplicationTests.java">
+package com.example.lms;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class LmsApplicationTests {
+
+	@Test
+	void contextLoads() {
+	}
+
+}
+</file>
+
+<file path="lms/.gitattributes">
+/mvnw text eol=lf
+*.cmd text eol=crlf
+</file>
+
+<file path="lms/.gitignore">
+target/
+
+*.log
+
+.DS_Store
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+</file>
+
+<file path="lms/HELP.md">
+# Getting Started
+
+### Reference Documentation
+For further reference, please consider the following sections:
+
+* [Official Apache Maven documentation](https://maven.apache.org/guides/index.html)
+* [Spring Boot Maven Plugin Reference Guide](https://docs.spring.io/spring-boot/4.0.3/maven-plugin)
+* [Create an OCI image](https://docs.spring.io/spring-boot/4.0.3/maven-plugin/build-image.html)
+* [Spring Web](https://docs.spring.io/spring-boot/4.0.3/reference/web/servlet.html)
+* [Spring Boot DevTools](https://docs.spring.io/spring-boot/4.0.3/reference/using/devtools.html)
+
+### Guides
+The following guides illustrate how to use some features concretely:
+
+* [Building a RESTful Web Service](https://spring.io/guides/gs/rest-service/)
+* [Serving Web Content with Spring MVC](https://spring.io/guides/gs/serving-web-content/)
+* [Building REST services with Spring](https://spring.io/guides/tutorials/rest/)
+
+### Maven Parent overrides
+
+Due to Maven's design, elements are inherited from the parent POM to the project POM.
+While most of the inheritance is fine, it also inherits unwanted elements like `<license>` and `<developers>` from the parent.
+To prevent this, the project POM contains empty overrides for these elements.
+If you manually switch to a different parent and actually want the inheritance, you need to remove those overrides.
+</file>
+
+<file path="lms/mvnw">
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+# ----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+# Apache Maven Wrapper startup batch script, version 3.3.4
+#
+# Optional ENV vars
+# -----------------
+#   JAVA_HOME - location of a JDK home dir, required when download maven via java source
+#   MVNW_REPOURL - repo url base for downloading maven distribution
+#   MVNW_USERNAME/MVNW_PASSWORD - user and password for downloading maven
+#   MVNW_VERBOSE - true: enable verbose log; debug: trace the mvnw script; others: silence the output
+# ----------------------------------------------------------------------------
+
+set -euf
+[ "${MVNW_VERBOSE-}" != debug ] || set -x
+
+# OS specific support.
+native_path() { printf %s\\n "$1"; }
+case "$(uname)" in
+CYGWIN* | MINGW*)
+  [ -z "${JAVA_HOME-}" ] || JAVA_HOME="$(cygpath --unix "$JAVA_HOME")"
+  native_path() { cygpath --path --windows "$1"; }
+  ;;
+esac
+
+# set JAVACMD and JAVACCMD
+set_java_home() {
+  # For Cygwin and MinGW, ensure paths are in Unix format before anything is touched
+  if [ -n "${JAVA_HOME-}" ]; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ]; then
+      # IBM's JDK on AIX uses strange locations for the executables
+      JAVACMD="$JAVA_HOME/jre/sh/java"
+      JAVACCMD="$JAVA_HOME/jre/sh/javac"
+    else
+      JAVACMD="$JAVA_HOME/bin/java"
+      JAVACCMD="$JAVA_HOME/bin/javac"
+
+      if [ ! -x "$JAVACMD" ] || [ ! -x "$JAVACCMD" ]; then
+        echo "The JAVA_HOME environment variable is not defined correctly, so mvnw cannot run." >&2
+        echo "JAVA_HOME is set to \"$JAVA_HOME\", but \"\$JAVA_HOME/bin/java\" or \"\$JAVA_HOME/bin/javac\" does not exist." >&2
+        return 1
+      fi
+    fi
+  else
+    JAVACMD="$(
+      'set' +e
+      'unset' -f command 2>/dev/null
+      'command' -v java
+    )" || :
+    JAVACCMD="$(
+      'set' +e
+      'unset' -f command 2>/dev/null
+      'command' -v javac
+    )" || :
+
+    if [ ! -x "${JAVACMD-}" ] || [ ! -x "${JAVACCMD-}" ]; then
+      echo "The java/javac command does not exist in PATH nor is JAVA_HOME set, so mvnw cannot run." >&2
+      return 1
+    fi
+  fi
+}
+
+# hash string like Java String::hashCode
+hash_string() {
+  str="${1:-}" h=0
+  while [ -n "$str" ]; do
+    char="${str%"${str#?}"}"
+    h=$(((h * 31 + $(LC_CTYPE=C printf %d "'$char")) % 4294967296))
+    str="${str#?}"
+  done
+  printf %x\\n $h
+}
+
+verbose() { :; }
+[ "${MVNW_VERBOSE-}" != true ] || verbose() { printf %s\\n "${1-}"; }
+
+die() {
+  printf %s\\n "$1" >&2
+  exit 1
+}
+
+trim() {
+  # MWRAPPER-139:
+  #   Trims trailing and leading whitespace, carriage returns, tabs, and linefeeds.
+  #   Needed for removing poorly interpreted newline sequences when running in more
+  #   exotic environments such as mingw bash on Windows.
+  printf "%s" "${1}" | tr -d '[:space:]'
+}
+
+scriptDir="$(dirname "$0")"
+scriptName="$(basename "$0")"
+
+# parse distributionUrl and optional distributionSha256Sum, requires .mvn/wrapper/maven-wrapper.properties
+while IFS="=" read -r key value; do
+  case "${key-}" in
+  distributionUrl) distributionUrl=$(trim "${value-}") ;;
+  distributionSha256Sum) distributionSha256Sum=$(trim "${value-}") ;;
+  esac
+done <"$scriptDir/.mvn/wrapper/maven-wrapper.properties"
+[ -n "${distributionUrl-}" ] || die "cannot read distributionUrl property in $scriptDir/.mvn/wrapper/maven-wrapper.properties"
+
+case "${distributionUrl##*/}" in
+maven-mvnd-*bin.*)
+  MVN_CMD=mvnd.sh _MVNW_REPO_PATTERN=/maven/mvnd/
+  case "${PROCESSOR_ARCHITECTURE-}${PROCESSOR_ARCHITEW6432-}:$(uname -a)" in
+  *AMD64:CYGWIN* | *AMD64:MINGW*) distributionPlatform=windows-amd64 ;;
+  :Darwin*x86_64) distributionPlatform=darwin-amd64 ;;
+  :Darwin*arm64) distributionPlatform=darwin-aarch64 ;;
+  :Linux*x86_64*) distributionPlatform=linux-amd64 ;;
+  *)
+    echo "Cannot detect native platform for mvnd on $(uname)-$(uname -m), use pure java version" >&2
+    distributionPlatform=linux-amd64
+    ;;
+  esac
+  distributionUrl="${distributionUrl%-bin.*}-$distributionPlatform.zip"
+  ;;
+maven-mvnd-*) MVN_CMD=mvnd.sh _MVNW_REPO_PATTERN=/maven/mvnd/ ;;
+*) MVN_CMD="mvn${scriptName#mvnw}" _MVNW_REPO_PATTERN=/org/apache/maven/ ;;
+esac
+
+# apply MVNW_REPOURL and calculate MAVEN_HOME
+# maven home pattern: ~/.m2/wrapper/dists/{apache-maven-<version>,maven-mvnd-<version>-<platform>}/<hash>
+[ -z "${MVNW_REPOURL-}" ] || distributionUrl="$MVNW_REPOURL$_MVNW_REPO_PATTERN${distributionUrl#*"$_MVNW_REPO_PATTERN"}"
+distributionUrlName="${distributionUrl##*/}"
+distributionUrlNameMain="${distributionUrlName%.*}"
+distributionUrlNameMain="${distributionUrlNameMain%-bin}"
+MAVEN_USER_HOME="${MAVEN_USER_HOME:-${HOME}/.m2}"
+MAVEN_HOME="${MAVEN_USER_HOME}/wrapper/dists/${distributionUrlNameMain-}/$(hash_string "$distributionUrl")"
+
+exec_maven() {
+  unset MVNW_VERBOSE MVNW_USERNAME MVNW_PASSWORD MVNW_REPOURL || :
+  exec "$MAVEN_HOME/bin/$MVN_CMD" "$@" || die "cannot exec $MAVEN_HOME/bin/$MVN_CMD"
+}
+
+if [ -d "$MAVEN_HOME" ]; then
+  verbose "found existing MAVEN_HOME at $MAVEN_HOME"
+  exec_maven "$@"
+fi
+
+case "${distributionUrl-}" in
+*?-bin.zip | *?maven-mvnd-?*-?*.zip) ;;
+*) die "distributionUrl is not valid, must match *-bin.zip or maven-mvnd-*.zip, but found '${distributionUrl-}'" ;;
+esac
+
+# prepare tmp dir
+if TMP_DOWNLOAD_DIR="$(mktemp -d)" && [ -d "$TMP_DOWNLOAD_DIR" ]; then
+  clean() { rm -rf -- "$TMP_DOWNLOAD_DIR"; }
+  trap clean HUP INT TERM EXIT
+else
+  die "cannot create temp dir"
+fi
+
+mkdir -p -- "${MAVEN_HOME%/*}"
+
+# Download and Install Apache Maven
+verbose "Couldn't find MAVEN_HOME, downloading and installing it ..."
+verbose "Downloading from: $distributionUrl"
+verbose "Downloading to: $TMP_DOWNLOAD_DIR/$distributionUrlName"
+
+# select .zip or .tar.gz
+if ! command -v unzip >/dev/null; then
+  distributionUrl="${distributionUrl%.zip}.tar.gz"
+  distributionUrlName="${distributionUrl##*/}"
+fi
+
+# verbose opt
+__MVNW_QUIET_WGET=--quiet __MVNW_QUIET_CURL=--silent __MVNW_QUIET_UNZIP=-q __MVNW_QUIET_TAR=''
+[ "${MVNW_VERBOSE-}" != true ] || __MVNW_QUIET_WGET='' __MVNW_QUIET_CURL='' __MVNW_QUIET_UNZIP='' __MVNW_QUIET_TAR=v
+
+# normalize http auth
+case "${MVNW_PASSWORD:+has-password}" in
+'') MVNW_USERNAME='' MVNW_PASSWORD='' ;;
+has-password) [ -n "${MVNW_USERNAME-}" ] || MVNW_USERNAME='' MVNW_PASSWORD='' ;;
+esac
+
+if [ -z "${MVNW_USERNAME-}" ] && command -v wget >/dev/null; then
+  verbose "Found wget ... using wget"
+  wget ${__MVNW_QUIET_WGET:+"$__MVNW_QUIET_WGET"} "$distributionUrl" -O "$TMP_DOWNLOAD_DIR/$distributionUrlName" || die "wget: Failed to fetch $distributionUrl"
+elif [ -z "${MVNW_USERNAME-}" ] && command -v curl >/dev/null; then
+  verbose "Found curl ... using curl"
+  curl ${__MVNW_QUIET_CURL:+"$__MVNW_QUIET_CURL"} -f -L -o "$TMP_DOWNLOAD_DIR/$distributionUrlName" "$distributionUrl" || die "curl: Failed to fetch $distributionUrl"
+elif set_java_home; then
+  verbose "Falling back to use Java to download"
+  javaSource="$TMP_DOWNLOAD_DIR/Downloader.java"
+  targetZip="$TMP_DOWNLOAD_DIR/$distributionUrlName"
+  cat >"$javaSource" <<-END
+	public class Downloader extends java.net.Authenticator
+	{
+	  protected java.net.PasswordAuthentication getPasswordAuthentication()
+	  {
+	    return new java.net.PasswordAuthentication( System.getenv( "MVNW_USERNAME" ), System.getenv( "MVNW_PASSWORD" ).toCharArray() );
+	  }
+	  public static void main( String[] args ) throws Exception
+	  {
+	    setDefault( new Downloader() );
+	    java.nio.file.Files.copy( java.net.URI.create( args[0] ).toURL().openStream(), java.nio.file.Paths.get( args[1] ).toAbsolutePath().normalize() );
+	  }
+	}
+	END
+  # For Cygwin/MinGW, switch paths to Windows format before running javac and java
+  verbose " - Compiling Downloader.java ..."
+  "$(native_path "$JAVACCMD")" "$(native_path "$javaSource")" || die "Failed to compile Downloader.java"
+  verbose " - Running Downloader.java ..."
+  "$(native_path "$JAVACMD")" -cp "$(native_path "$TMP_DOWNLOAD_DIR")" Downloader "$distributionUrl" "$(native_path "$targetZip")"
+fi
+
+# If specified, validate the SHA-256 sum of the Maven distribution zip file
+if [ -n "${distributionSha256Sum-}" ]; then
+  distributionSha256Result=false
+  if [ "$MVN_CMD" = mvnd.sh ]; then
+    echo "Checksum validation is not supported for maven-mvnd." >&2
+    echo "Please disable validation by removing 'distributionSha256Sum' from your maven-wrapper.properties." >&2
+    exit 1
+  elif command -v sha256sum >/dev/null; then
+    if echo "$distributionSha256Sum  $TMP_DOWNLOAD_DIR/$distributionUrlName" | sha256sum -c - >/dev/null 2>&1; then
+      distributionSha256Result=true
+    fi
+  elif command -v shasum >/dev/null; then
+    if echo "$distributionSha256Sum  $TMP_DOWNLOAD_DIR/$distributionUrlName" | shasum -a 256 -c >/dev/null 2>&1; then
+      distributionSha256Result=true
+    fi
+  else
+    echo "Checksum validation was requested but neither 'sha256sum' or 'shasum' are available." >&2
+    echo "Please install either command, or disable validation by removing 'distributionSha256Sum' from your maven-wrapper.properties." >&2
+    exit 1
+  fi
+  if [ $distributionSha256Result = false ]; then
+    echo "Error: Failed to validate Maven distribution SHA-256, your Maven distribution might be compromised." >&2
+    echo "If you updated your Maven version, you need to update the specified distributionSha256Sum property." >&2
+    exit 1
+  fi
+fi
+
+# unzip and move
+if command -v unzip >/dev/null; then
+  unzip ${__MVNW_QUIET_UNZIP:+"$__MVNW_QUIET_UNZIP"} "$TMP_DOWNLOAD_DIR/$distributionUrlName" -d "$TMP_DOWNLOAD_DIR" || die "failed to unzip"
+else
+  tar xzf${__MVNW_QUIET_TAR:+"$__MVNW_QUIET_TAR"} "$TMP_DOWNLOAD_DIR/$distributionUrlName" -C "$TMP_DOWNLOAD_DIR" || die "failed to untar"
+fi
+
+# Find the actual extracted directory name (handles snapshots where filename != directory name)
+actualDistributionDir=""
+
+# First try the expected directory name (for regular distributions)
+if [ -d "$TMP_DOWNLOAD_DIR/$distributionUrlNameMain" ]; then
+  if [ -f "$TMP_DOWNLOAD_DIR/$distributionUrlNameMain/bin/$MVN_CMD" ]; then
+    actualDistributionDir="$distributionUrlNameMain"
+  fi
+fi
+
+# If not found, search for any directory with the Maven executable (for snapshots)
+if [ -z "$actualDistributionDir" ]; then
+  # enable globbing to iterate over items
+  set +f
+  for dir in "$TMP_DOWNLOAD_DIR"/*; do
+    if [ -d "$dir" ]; then
+      if [ -f "$dir/bin/$MVN_CMD" ]; then
+        actualDistributionDir="$(basename "$dir")"
+        break
+      fi
+    fi
+  done
+  set -f
+fi
+
+if [ -z "$actualDistributionDir" ]; then
+  verbose "Contents of $TMP_DOWNLOAD_DIR:"
+  verbose "$(ls -la "$TMP_DOWNLOAD_DIR")"
+  die "Could not find Maven distribution directory in extracted archive"
+fi
+
+verbose "Found extracted Maven distribution directory: $actualDistributionDir"
+printf %s\\n "$distributionUrl" >"$TMP_DOWNLOAD_DIR/$actualDistributionDir/mvnw.url"
+mv -- "$TMP_DOWNLOAD_DIR/$actualDistributionDir" "$MAVEN_HOME" || [ -d "$MAVEN_HOME" ] || die "fail to move MAVEN_HOME"
+
+clean || :
+exec_maven "$@"
+</file>
+
+<file path="lms/mvnw.cmd">
+<# : batch portion
+@REM ----------------------------------------------------------------------------
+@REM Licensed to the Apache Software Foundation (ASF) under one
+@REM or more contributor license agreements.  See the NOTICE file
+@REM distributed with this work for additional information
+@REM regarding copyright ownership.  The ASF licenses this file
+@REM to you under the Apache License, Version 2.0 (the
+@REM "License"); you may not use this file except in compliance
+@REM with the License.  You may obtain a copy of the License at
+@REM
+@REM    http://www.apache.org/licenses/LICENSE-2.0
+@REM
+@REM Unless required by applicable law or agreed to in writing,
+@REM software distributed under the License is distributed on an
+@REM "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+@REM KIND, either express or implied.  See the License for the
+@REM specific language governing permissions and limitations
+@REM under the License.
+@REM ----------------------------------------------------------------------------
+
+@REM ----------------------------------------------------------------------------
+@REM Apache Maven Wrapper startup batch script, version 3.3.4
+@REM
+@REM Optional ENV vars
+@REM   MVNW_REPOURL - repo url base for downloading maven distribution
+@REM   MVNW_USERNAME/MVNW_PASSWORD - user and password for downloading maven
+@REM   MVNW_VERBOSE - true: enable verbose log; others: silence the output
+@REM ----------------------------------------------------------------------------
+
+@IF "%__MVNW_ARG0_NAME__%"=="" (SET __MVNW_ARG0_NAME__=%~nx0)
+@SET __MVNW_CMD__=
+@SET __MVNW_ERROR__=
+@SET __MVNW_PSMODULEP_SAVE=%PSModulePath%
+@SET PSModulePath=
+@FOR /F "usebackq tokens=1* delims==" %%A IN (`powershell -noprofile "& {$scriptDir='%~dp0'; $script='%__MVNW_ARG0_NAME__%'; icm -ScriptBlock ([Scriptblock]::Create((Get-Content -Raw '%~f0'))) -NoNewScope}"`) DO @(
+  IF "%%A"=="MVN_CMD" (set __MVNW_CMD__=%%B) ELSE IF "%%B"=="" (echo %%A) ELSE (echo %%A=%%B)
+)
+@SET PSModulePath=%__MVNW_PSMODULEP_SAVE%
+@SET __MVNW_PSMODULEP_SAVE=
+@SET __MVNW_ARG0_NAME__=
+@SET MVNW_USERNAME=
+@SET MVNW_PASSWORD=
+@IF NOT "%__MVNW_CMD__%"=="" ("%__MVNW_CMD__%" %*)
+@echo Cannot start maven from wrapper >&2 && exit /b 1
+@GOTO :EOF
+: end batch / begin powershell #>
+
+$ErrorActionPreference = "Stop"
+if ($env:MVNW_VERBOSE -eq "true") {
+  $VerbosePreference = "Continue"
+}
+
+# calculate distributionUrl, requires .mvn/wrapper/maven-wrapper.properties
+$distributionUrl = (Get-Content -Raw "$scriptDir/.mvn/wrapper/maven-wrapper.properties" | ConvertFrom-StringData).distributionUrl
+if (!$distributionUrl) {
+  Write-Error "cannot read distributionUrl property in $scriptDir/.mvn/wrapper/maven-wrapper.properties"
+}
+
+switch -wildcard -casesensitive ( $($distributionUrl -replace '^.*/','') ) {
+  "maven-mvnd-*" {
+    $USE_MVND = $true
+    $distributionUrl = $distributionUrl -replace '-bin\.[^.]*$',"-windows-amd64.zip"
+    $MVN_CMD = "mvnd.cmd"
+    break
+  }
+  default {
+    $USE_MVND = $false
+    $MVN_CMD = $script -replace '^mvnw','mvn'
+    break
+  }
+}
+
+# apply MVNW_REPOURL and calculate MAVEN_HOME
+# maven home pattern: ~/.m2/wrapper/dists/{apache-maven-<version>,maven-mvnd-<version>-<platform>}/<hash>
+if ($env:MVNW_REPOURL) {
+  $MVNW_REPO_PATTERN = if ($USE_MVND -eq $False) { "/org/apache/maven/" } else { "/maven/mvnd/" }
+  $distributionUrl = "$env:MVNW_REPOURL$MVNW_REPO_PATTERN$($distributionUrl -replace "^.*$MVNW_REPO_PATTERN",'')"
+}
+$distributionUrlName = $distributionUrl -replace '^.*/',''
+$distributionUrlNameMain = $distributionUrlName -replace '\.[^.]*$','' -replace '-bin$',''
+
+$MAVEN_M2_PATH = "$HOME/.m2"
+if ($env:MAVEN_USER_HOME) {
+  $MAVEN_M2_PATH = "$env:MAVEN_USER_HOME"
+}
+
+if (-not (Test-Path -Path $MAVEN_M2_PATH)) {
+    New-Item -Path $MAVEN_M2_PATH -ItemType Directory | Out-Null
+}
+
+$MAVEN_WRAPPER_DISTS = $null
+if ((Get-Item $MAVEN_M2_PATH).Target[0] -eq $null) {
+  $MAVEN_WRAPPER_DISTS = "$MAVEN_M2_PATH/wrapper/dists"
+} else {
+  $MAVEN_WRAPPER_DISTS = (Get-Item $MAVEN_M2_PATH).Target[0] + "/wrapper/dists"
+}
+
+$MAVEN_HOME_PARENT = "$MAVEN_WRAPPER_DISTS/$distributionUrlNameMain"
+$MAVEN_HOME_NAME = ([System.Security.Cryptography.SHA256]::Create().ComputeHash([byte[]][char[]]$distributionUrl) | ForEach-Object {$_.ToString("x2")}) -join ''
+$MAVEN_HOME = "$MAVEN_HOME_PARENT/$MAVEN_HOME_NAME"
+
+if (Test-Path -Path "$MAVEN_HOME" -PathType Container) {
+  Write-Verbose "found existing MAVEN_HOME at $MAVEN_HOME"
+  Write-Output "MVN_CMD=$MAVEN_HOME/bin/$MVN_CMD"
+  exit $?
+}
+
+if (! $distributionUrlNameMain -or ($distributionUrlName -eq $distributionUrlNameMain)) {
+  Write-Error "distributionUrl is not valid, must end with *-bin.zip, but found $distributionUrl"
+}
+
+# prepare tmp dir
+$TMP_DOWNLOAD_DIR_HOLDER = New-TemporaryFile
+$TMP_DOWNLOAD_DIR = New-Item -Itemtype Directory -Path "$TMP_DOWNLOAD_DIR_HOLDER.dir"
+$TMP_DOWNLOAD_DIR_HOLDER.Delete() | Out-Null
+trap {
+  if ($TMP_DOWNLOAD_DIR.Exists) {
+    try { Remove-Item $TMP_DOWNLOAD_DIR -Recurse -Force | Out-Null }
+    catch { Write-Warning "Cannot remove $TMP_DOWNLOAD_DIR" }
+  }
+}
+
+New-Item -Itemtype Directory -Path "$MAVEN_HOME_PARENT" -Force | Out-Null
+
+# Download and Install Apache Maven
+Write-Verbose "Couldn't find MAVEN_HOME, downloading and installing it ..."
+Write-Verbose "Downloading from: $distributionUrl"
+Write-Verbose "Downloading to: $TMP_DOWNLOAD_DIR/$distributionUrlName"
+
+$webclient = New-Object System.Net.WebClient
+if ($env:MVNW_USERNAME -and $env:MVNW_PASSWORD) {
+  $webclient.Credentials = New-Object System.Net.NetworkCredential($env:MVNW_USERNAME, $env:MVNW_PASSWORD)
+}
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$webclient.DownloadFile($distributionUrl, "$TMP_DOWNLOAD_DIR/$distributionUrlName") | Out-Null
+
+# If specified, validate the SHA-256 sum of the Maven distribution zip file
+$distributionSha256Sum = (Get-Content -Raw "$scriptDir/.mvn/wrapper/maven-wrapper.properties" | ConvertFrom-StringData).distributionSha256Sum
+if ($distributionSha256Sum) {
+  if ($USE_MVND) {
+    Write-Error "Checksum validation is not supported for maven-mvnd. `nPlease disable validation by removing 'distributionSha256Sum' from your maven-wrapper.properties."
+  }
+  Import-Module $PSHOME\Modules\Microsoft.PowerShell.Utility -Function Get-FileHash
+  if ((Get-FileHash "$TMP_DOWNLOAD_DIR/$distributionUrlName" -Algorithm SHA256).Hash.ToLower() -ne $distributionSha256Sum) {
+    Write-Error "Error: Failed to validate Maven distribution SHA-256, your Maven distribution might be compromised. If you updated your Maven version, you need to update the specified distributionSha256Sum property."
+  }
+}
+
+# unzip and move
+Expand-Archive "$TMP_DOWNLOAD_DIR/$distributionUrlName" -DestinationPath "$TMP_DOWNLOAD_DIR" | Out-Null
+
+# Find the actual extracted directory name (handles snapshots where filename != directory name)
+$actualDistributionDir = ""
+
+# First try the expected directory name (for regular distributions)
+$expectedPath = Join-Path "$TMP_DOWNLOAD_DIR" "$distributionUrlNameMain"
+$expectedMvnPath = Join-Path "$expectedPath" "bin/$MVN_CMD"
+if ((Test-Path -Path $expectedPath -PathType Container) -and (Test-Path -Path $expectedMvnPath -PathType Leaf)) {
+  $actualDistributionDir = $distributionUrlNameMain
+}
+
+# If not found, search for any directory with the Maven executable (for snapshots)
+if (!$actualDistributionDir) {
+  Get-ChildItem -Path "$TMP_DOWNLOAD_DIR" -Directory | ForEach-Object {
+    $testPath = Join-Path $_.FullName "bin/$MVN_CMD"
+    if (Test-Path -Path $testPath -PathType Leaf) {
+      $actualDistributionDir = $_.Name
+    }
+  }
+}
+
+if (!$actualDistributionDir) {
+  Write-Error "Could not find Maven distribution directory in extracted archive"
+}
+
+Write-Verbose "Found extracted Maven distribution directory: $actualDistributionDir"
+Rename-Item -Path "$TMP_DOWNLOAD_DIR/$actualDistributionDir" -NewName $MAVEN_HOME_NAME | Out-Null
+try {
+  Move-Item -Path "$TMP_DOWNLOAD_DIR/$MAVEN_HOME_NAME" -Destination $MAVEN_HOME_PARENT | Out-Null
+} catch {
+  if (! (Test-Path -Path "$MAVEN_HOME" -PathType Container)) {
+    Write-Error "fail to move MAVEN_HOME"
+  }
+} finally {
+  try { Remove-Item $TMP_DOWNLOAD_DIR -Recurse -Force | Out-Null }
+  catch { Write-Warning "Cannot remove $TMP_DOWNLOAD_DIR" }
+}
+
+Write-Output "MVN_CMD=$MAVEN_HOME/bin/$MVN_CMD"
+</file>
+
+<file path="lms/pom.xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.0.3</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.example</groupId>
+	<artifactId>lms</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>lms</name>
+	<description>Demo project for Spring Boot</description>
+	<url/>
+	<licenses>
+		<license/>
+	</licenses>
+	<developers>
+		<developer/>
+	</developers>
+	<scm>
+		<connection/>
+		<developerConnection/>
+		<tag/>
+		<url/>
+	</scm>
+	<properties>
+		<java.version>25</java.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+		<dependency>
+    		<groupId>org.springdoc</groupId>
+    		<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    		<version>2.5.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+        	<groupId>org.springframework.boot</groupId>
+        	<artifactId>spring-boot-starter-data-jpa</artifactId>
+    	</dependency>
+		<dependency>
+        	<groupId>org.postgresql</groupId>
+        	<artifactId>postgresql</artifactId>
+    	</dependency>
+		<dependency>
+    		<groupId>org.springframework.boot</groupId>
+    		<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+	   </dependency>
+	   <dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+		<dependency>
+    		<groupId>io.jsonwebtoken</groupId>
+        	<artifactId>jjwt-api</artifactId>
+        	<version>0.11.5</version>
+    </dependency>
+    <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-impl</artifactId>
+        <version>0.11.5</version>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-jackson</artifactId>
+        <version>0.11.5</version>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
+</file>
+
+</files>
