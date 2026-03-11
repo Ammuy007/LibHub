@@ -25,6 +25,10 @@ public interface FineRepository extends JpaRepository<Fine, Integer> {
 
     long countByStatusIgnoreCaseNot(String status);
 
+    boolean existsByLoan_LoanIdAndStatusIgnoreCase(Integer loanId, String status);
+
+    boolean existsByLoan_Member_MemberIdAndStatusIgnoreCase(Integer memberId, String status);
+
     @org.springframework.data.jpa.repository.Query("SELECT SUM(f.amount - COALESCE(f.paidAmount, 0)) FROM Fine f WHERE f.status <> 'paid'")
     Double sumUnpaidFines();
 }

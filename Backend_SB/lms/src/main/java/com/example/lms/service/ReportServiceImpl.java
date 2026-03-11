@@ -76,7 +76,9 @@ public class ReportServiceImpl implements ReportService {
         LocalDate referenceDate = today.isBefore(end) ? today : end;
 
         java.util.List<com.example.lms.entity.Loan> overdueLoans = loanRepository.findAll().stream()
-                .filter(l -> l.getReturnDate() == null && l.getDueDate().isBefore(referenceDate))
+                .filter(l -> l.getReturnDate() == null)
+                .filter(l -> !l.getDueDate().isBefore(start) && !l.getDueDate().isAfter(end))
+                .filter(l -> l.getDueDate().isBefore(referenceDate))
                 .toList();
 
         long overdueCount = overdueLoans.size();
@@ -106,7 +108,8 @@ public class ReportServiceImpl implements ReportService {
         }
 
         // 6. Popular Genres (Top 5 + Other)
-        java.util.List<CategoryCountResponse> allCategories = categoryRepository.findCategoryCounts();
+        java.util.List<CategoryCountResponse> allCategories =
+                categoryRepository.findCategoryCountsByLoanIssueDate(start, end);
         long totalIssuesAcrossCategories = allCategories.stream().mapToLong(CategoryCountResponse::count).sum();
 
         java.util.List<CategoryCountResponse> topCategories = new java.util.ArrayList<>();

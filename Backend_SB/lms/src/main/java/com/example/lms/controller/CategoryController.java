@@ -29,7 +29,7 @@ public class CategoryController {
         return categoryService.update(id, categoryRequest);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
     @GetMapping
     public Page<CategoryResponse> getCategories(@RequestParam(required = false) Integer id,
                                                 @RequestParam(defaultValue = "0") Integer page,

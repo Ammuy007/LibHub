@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 public class FineRequest {
     private Integer loanId;
+    private Integer copyId;
     private BigDecimal amount;
     private BigDecimal paidAmount;
     private String status;
@@ -13,6 +14,8 @@ public class FineRequest {
 
     public Integer getLoanId() { return loanId; }
     public void setLoanId(Integer loanId) { this.loanId = loanId; }
+    public Integer getCopyId() { return copyId; }
+    public void setCopyId(Integer copyId) { this.copyId = copyId; }
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
     public BigDecimal getPaidAmount() { return paidAmount; }

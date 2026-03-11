@@ -7,6 +7,7 @@ import com.example.lms.entity.Copy;
 import com.example.lms.entity.Loan;
 import com.example.lms.entity.Member;
 import com.example.lms.repository.CopyRepository;
+import com.example.lms.repository.FineRepository;
 import com.example.lms.repository.LoanRepository;
 import com.example.lms.repository.MemberRepository;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,13 +30,16 @@ public class LoanServiceImpl implements LoanService {
     private final LoanRepository loanRepository;
     private final CopyRepository copyRepository;
     private final MemberRepository memberRepository;
+    private final FineRepository fineRepository;
 
     public LoanServiceImpl(LoanRepository loanRepository,
             CopyRepository copyRepository,
-            MemberRepository memberRepository) {
+            MemberRepository memberRepository,
+            FineRepository fineRepository) {
         this.loanRepository = loanRepository;
         this.copyRepository = copyRepository;
         this.memberRepository = memberRepository;
+        this.fineRepository = fineRepository;
     }
 
     @Override
@@ -43,7 +49,12 @@ public class LoanServiceImpl implements LoanService {
 
         Member member = memberRepository.findById(request.getMemberId())
                 .orElseThrow(() -> new RuntimeException("Member not found"));
-        if (copy.getStatus().equalsIgnoreCase("UNAVAILABLE")) {
+
+        if (fineRepository.existsByLoan_Member_MemberIdAndStatusIgnoreCase(
+                member.getMemberId(), "unpaid")) {
+            throw new RuntimeException("Member has unpaid fines");
+        }
+        if (copy.getStatus().equalsIgnoreCase("UNAVAILABLE") || copy.getStatus().equalsIgnoreCase("ISSUED")) {
             throw new RuntimeException("Copy is currently unavailable");
         }
         long activeLoans = loanRepository.countByMember_MemberIdAndReturnDateIsNull(member.getMemberId());
@@ -68,13 +79,17 @@ public class LoanServiceImpl implements LoanService {
 
         loan.setIssueDate(request.getIssueDate());
         loan.setReturnDate(null);
-        loan.setDueDate(request.getIssueDate().plusDays(14));
+        int loanPeriodDays = request.getLoanPeriodDays() != null && request.getLoanPeriodDays() > 0
+                ? request.getLoanPeriodDays()
+                : 14;
+        loan.setDueDate(request.getIssueDate().plusDays(loanPeriodDays));
+        loan.setCreatedAt(OffsetDateTime.now(ZoneId.of("Asia/Kolkata")));
         if (request.getRemarks() != null) {
             loan.setRemarks(request.getRemarks());
         }
 
         Loan saved = loanRepository.save(loan);
-        copy.setStatus("unavailable");
+        copy.setStatus("issued");
         copyRepository.save(copy);
         return mapToResponse(saved);
     }
@@ -130,9 +145,10 @@ public class LoanServiceImpl implements LoanService {
 
     @Override
     public Page<LoanResponse> getLoans(Integer loanId, Integer memberId, Boolean overdue,
-            Integer requesterMemberId, boolean isAdmin,
+            Boolean active, Integer requesterMemberId, boolean isAdmin,
             Integer page, Integer size) {
         boolean applyOverdue = Boolean.TRUE.equals(overdue);
+        boolean applyActive = Boolean.TRUE.equals(active);
         Pageable pageable = buildPageable(page, size, applyOverdue);
 
         if (loanId == null) {
@@ -146,13 +162,20 @@ public class LoanServiceImpl implements LoanService {
                 if (applyOverdue) {
                     loanPage = loanRepository.findByMember_MemberIdAndReturnDateIsNullAndDueDateBefore(
                             targetMemberId, LocalDate.now(), pageable);
+                } else if (applyActive) {
+                    loanPage = loanRepository.findByMember_MemberIdAndReturnDateIsNull(
+                            targetMemberId, pageable);
                 } else {
                     loanPage = loanRepository.findByMember_MemberId(targetMemberId, pageable);
                 }
-            } else if (isAdmin && applyOverdue) {
-                loanPage = loanRepository.findByReturnDateIsNullAndDueDateBefore(LocalDate.now(), pageable);
             } else if (isAdmin) {
-                loanPage = loanRepository.findAll(pageable);
+                if (applyOverdue) {
+                    loanPage = loanRepository.findByReturnDateIsNullAndDueDateBefore(LocalDate.now(), pageable);
+                } else if (applyActive) {
+                    loanPage = loanRepository.findByReturnDateIsNull(pageable);
+                } else {
+                    loanPage = loanRepository.findAll(pageable);
+                }
             } else {
                 // Should not happen for non-admin without memberId
                 return Page.empty(pageable);
@@ -171,6 +194,9 @@ public class LoanServiceImpl implements LoanService {
             if (!isOverdue) {
                 return Page.empty(pageable);
             }
+        }
+        if (applyActive && loan.getReturnDate() != null) {
+            return Page.empty(pageable);
         }
         return toSinglePage(loan, pageable);
     }
@@ -224,6 +250,10 @@ public class LoanServiceImpl implements LoanService {
             throw new RuntimeException("Book already returned");
         }
 
+        if (fineRepository.existsByLoan_LoanIdAndStatusIgnoreCase(loanId, "unpaid")) {
+            throw new RuntimeException("Cannot return book with unpaid fines");
+        }
+
         loan.setReturnDate(LocalDate.now());
 
         Copy copy = loan.getCopy();
@@ -232,6 +262,34 @@ public class LoanServiceImpl implements LoanService {
         copyRepository.save(copy);
         Loan updated = loanRepository.save(loan);
 
+        return mapToResponse(updated);
+    }
+
+    @Override
+    public LoanResponse returnBookByCopy(Integer copyId, String remarks) {
+        if (copyId == null) {
+            throw new RuntimeException("Copy ID is required");
+        }
+        Loan loan = loanRepository.findActiveByCopyId(copyId)
+                .orElseThrow(() -> new RuntimeException("Active loan not found for this copy"));
+
+        if (loan.getReturnDate() != null) {
+            throw new RuntimeException("Book already returned");
+        }
+
+        if (fineRepository.existsByLoan_LoanIdAndStatusIgnoreCase(loan.getLoanId(), "unpaid")) {
+            throw new RuntimeException("Cannot return book with unpaid fines");
+        }
+
+        loan.setReturnDate(LocalDate.now());
+        if (remarks != null) {
+            loan.setRemarks(remarks);
+        }
+
+        Copy copy = loan.getCopy();
+        copy.setStatus("available");
+        copyRepository.save(copy);
+        Loan updated = loanRepository.save(loan);
         return mapToResponse(updated);
     }
 }

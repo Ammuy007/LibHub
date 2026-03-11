@@ -33,8 +33,9 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public DashboardStatsResponse getStats() {
         long totalBooks = bookRepository.count();
-        long availableCopies = copyRepository.countByStatusIgnoreCase("available");
-        long issuedBooks = copyRepository.countByStatusIgnoreCase("unavailable");
+        long availableCopies = copyRepository.count();
+        long issuedBooks = copyRepository.countByStatusIgnoreCase("issued");
+
         long overdueLoans = loanRepository.countByReturnDateIsNullAndDueDateBefore(LocalDate.now());
         Double unpaidFines = fineRepository.sumUnpaidFines();
 

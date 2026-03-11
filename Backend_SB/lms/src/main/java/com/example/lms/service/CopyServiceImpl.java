@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 @Service
 public class CopyServiceImpl implements CopyService {
@@ -38,6 +40,7 @@ public class CopyServiceImpl implements CopyService {
             Copy c = new Copy();
             c.setBook(book);
             c.setStatus("available");
+            c.setCreatedAt(OffsetDateTime.now(ZoneId.of("Asia/Kolkata")));
             copies.add(c);
         }
 

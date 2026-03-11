@@ -16,6 +16,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.AccessDeniedException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -29,8 +31,8 @@ public class FineServiceImpl implements FineService {
         this.fineRepository = fineRepository;
         this.loanRepository = loanRepository;
     }
-
-    @Scheduled(cron = "0 0 1 * * ?")
+//every 1 minute
+    @Scheduled(fixedRate = 60000)
     public void checkAndCreateFinesScheduled() {
         loanRepository.findAll()
                 .forEach(loan -> checkAndCreateFine(loan.getLoanId()));
@@ -49,8 +51,17 @@ public class FineServiceImpl implements FineService {
         if (!loan.getDueDate().isBefore(LocalDate.now()))
             return;
 
-        if (fineRepository.findByLoan_LoanId(loanId).isPresent())
+        java.util.Optional<Fine> existingFine = fineRepository.findByLoan_LoanId(loanId);
+        if (existingFine.isPresent()) {
+            Fine fine = existingFine.get();
+            long daysLate = loan.getDueDate().until(LocalDate.now()).getDays();
+            BigDecimal amount = BigDecimal.valueOf(daysLate * 10);
+            if (fine.getAmount() == null || fine.getAmount().compareTo(amount) != 0) {
+                fine.setAmount(amount);
+                fineRepository.save(fine);
+            }
             return;
+        }
 
         long daysLate = loan.getDueDate().until(LocalDate.now()).getDays();
         BigDecimal amount = BigDecimal.valueOf(daysLate * 10);
@@ -60,6 +71,8 @@ public class FineServiceImpl implements FineService {
         fine.setAmount(amount);
         fine.setPaidAmount(BigDecimal.ZERO);
         fine.setStatus("unpaid");
+        fine.setReason("overdue return");
+        fine.setCreatedAt(OffsetDateTime.now(ZoneId.of("Asia/Kolkata")));
 
         fineRepository.save(fine);
     }
@@ -67,8 +80,16 @@ public class FineServiceImpl implements FineService {
     @Override
     public FineResponse createFine(FineRequest request) {
 
-        Loan loan = loanRepository.findById(request.getLoanId())
-                .orElseThrow(() -> new RuntimeException("Loan not found"));
+        Loan loan;
+        if (request.getCopyId() != null) {
+            loan = loanRepository.findActiveByCopyId(request.getCopyId())
+                    .orElseThrow(() -> new RuntimeException("Active loan not found for this copy"));
+        } else if (request.getLoanId() != null) {
+            loan = loanRepository.findById(request.getLoanId())
+                    .orElseThrow(() -> new RuntimeException("Loan not found"));
+        } else {
+            throw new RuntimeException("Copy ID is required");
+        }
 
         Fine fine = new Fine();
         fine.setLoan(loan);
@@ -76,6 +97,7 @@ public class FineServiceImpl implements FineService {
         if (request.getReason() != null) {
             fine.setReason(request.getReason());
         }
+        fine.setCreatedAt(OffsetDateTime.now(ZoneId.of("Asia/Kolkata")));
 
         applyPaymentFields(fine, request);
 

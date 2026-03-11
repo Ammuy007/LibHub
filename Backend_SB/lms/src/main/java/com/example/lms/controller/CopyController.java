@@ -38,7 +38,7 @@ public class CopyController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MEMBER')")
     public List<CopyResponse> getCopies(@RequestParam(required = false) Integer id,
                                         @RequestParam(required = false) Integer bookId,
                                         @RequestParam(required = false) String status) {

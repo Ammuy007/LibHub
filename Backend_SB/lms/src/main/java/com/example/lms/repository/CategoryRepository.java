@@ -24,4 +24,16 @@ public interface CategoryRepository extends JpaRepository<Category, Integer> {
     @Query("SELECT c.categoryName FROM Category c JOIN BookCategory bc ON c.category_id = bc.categoryId " +
             "WHERE bc.bookId = :bookId ORDER BY bc.categoryId ASC")
     List<String> findCategoryNamesByBookId(@Param("bookId") Integer bookId);
+
+    @Query("SELECT new com.example.lms.dto.CategoryCountResponse(c.categoryName, COUNT(l.loanId)) " +
+            "FROM Loan l " +
+            "JOIN l.copy cp " +
+            "JOIN cp.book b " +
+            "JOIN BookCategory bc ON bc.bookId = b.bookId " +
+            "JOIN Category c ON c.category_id = bc.categoryId " +
+            "WHERE l.issueDate BETWEEN :start AND :end " +
+            "GROUP BY c.categoryName ORDER BY COUNT(l.loanId) DESC")
+    java.util.List<com.example.lms.dto.CategoryCountResponse> findCategoryCountsByLoanIssueDate(
+            @Param("start") java.time.LocalDate start,
+            @Param("end") java.time.LocalDate end);
 }

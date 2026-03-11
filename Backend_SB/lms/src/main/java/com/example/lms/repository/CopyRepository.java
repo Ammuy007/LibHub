@@ -18,4 +18,6 @@ public interface CopyRepository extends JpaRepository<Copy, Integer> {
     long countByBook_BookIdAndStatus(Integer bookId, String status);
 
     long countByStatusIgnoreCase(String status);
+
+    void deleteByBook_BookId(Integer bookId);
 }

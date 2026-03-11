@@ -4,12 +4,16 @@ import com.example.lms.dto.BookRequest;
 import com.example.lms.dto.BookResponse;
 import com.example.lms.entity.Book;
 import com.example.lms.repository.BookRepository;
+import com.example.lms.repository.CopyRepository;
+import com.example.lms.repository.LoanRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Service
 public class BookServiceImpl implements BookService {
@@ -18,15 +22,21 @@ public class BookServiceImpl implements BookService {
     private final BookInfoService bookInfoService;
     private final com.example.lms.repository.CategoryRepository categoryRepo;
     private final com.example.lms.repository.BookCategoryRepository bookCategoryRepo;
+    private final LoanRepository loanRepo;
+    private final CopyRepository copyRepo;
 
     public BookServiceImpl(BookRepository repo,
             BookInfoService bookInfoService,
             com.example.lms.repository.CategoryRepository categoryRepo,
-            com.example.lms.repository.BookCategoryRepository bookCategoryRepo) {
+            com.example.lms.repository.BookCategoryRepository bookCategoryRepo,
+            LoanRepository loanRepo,
+            CopyRepository copyRepo) {
         this.repo = repo;
         this.bookInfoService = bookInfoService;
         this.categoryRepo = categoryRepo;
         this.bookCategoryRepo = bookCategoryRepo;
+        this.loanRepo = loanRepo;
+        this.copyRepo = copyRepo;
     }
 
     private BookResponse toResponse(Book b, List<String> categories) {
@@ -62,10 +72,12 @@ public class BookServiceImpl implements BookService {
         if (!books.isEmpty()) {
             List<Integer> bookIds = books.stream().map(Book::getBook_id).toList();
             for (Object[] row : repo.findCategoryNamesByBookIds(bookIds)) {
-                if (row == null || row.length < 2) continue;
+                if (row == null || row.length < 2)
+                    continue;
                 Number bookIdValue = (Number) row[0];
                 String categoryName = (String) row[1];
-                if (bookIdValue == null || categoryName == null) continue;
+                if (bookIdValue == null || categoryName == null)
+                    continue;
                 Integer bookId = bookIdValue.intValue();
                 categoriesByBookId.computeIfAbsent(bookId, k -> new java.util.ArrayList<>()).add(categoryName);
             }
@@ -93,7 +105,7 @@ public class BookServiceImpl implements BookService {
 
         String desc = bookInfoService.fetchDescriptionByIsbn(req.getIsbn());
         b.setDescription(desc);
-        b.setCreatedAt(LocalDate.now());
+        b.setCreatedAt(LocalDate.now(ZoneId.of("Asia/Kolkata")));
 
         Book savedBook = repo.save(b);
 
@@ -135,7 +147,13 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
+    @Transactional
     public void delete(Integer id) {
+        if (loanRepo.existsByCopy_Book_BookIdAndReturnDateIsNull(id)) {
+            throw new RuntimeException("Cannot delete book: Copies are currently issued to members.");
+        }
+        bookCategoryRepo.deleteByBookId(id);
+        copyRepo.deleteByBook_BookId(id);
         repo.deleteById(id);
     }
 }

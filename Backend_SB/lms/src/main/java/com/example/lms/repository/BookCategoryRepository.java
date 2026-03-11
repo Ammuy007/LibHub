@@ -13,6 +13,8 @@ public interface BookCategoryRepository extends JpaRepository<BookCategory, Book
 
     List<BookCategory> findByBookId(Integer bookId);
 
+    void deleteByBookId(Integer bookId);
+
     @Query(value = """
         SELECT c.category_name
         FROM book_category bc
